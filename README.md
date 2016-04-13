@@ -13,6 +13,7 @@ Using different MINOR version is also quite OK and has small possibility for iss
 **NB! Possible issues and errors are anticipated if different MAJOR version is used.**
 
 * Node.js - 4.x.x (4.4.3 is currently used)
+* npm.js - 3.x. (3.8.6 is currently used)
 * MongoDB - 3.2.x (3.2.3 is currently used)
 * Angular.js - 1.5.x (1.5.3 is currently used)
 * Socket.IO - 1.4.x (1.4.5 is currrently used)
@@ -32,6 +33,10 @@ The structure of the repository should have a **master** branch with most of the
 If at all possible, please try to create local branches for isses to work on and then incorporate these changes into one of the main branches.
 
 Do try to commit ofthen and in manageable chunks (it could later on be **squashed**, if needed).
+
+Every commit should have a meaningful message describing what it brings. The message could only consist of a short line, though more details explanation as second part of sommit message is strongly encouraged.
+
+**BN! Please separate short and long parts of the commit message by a newline. This produces better results when viewing commits.**
 
 ### Issues and milestones
 
