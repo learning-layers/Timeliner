@@ -17,8 +17,8 @@ require('./app/routes')(app);
 
 // Start app
 if (!module.parent) {
-  app.listen(config.app.port);
+  app.listen(process.env.PORT || config.app.port);
   console.log('Server started on port: ' + config.app.port);
 }
-console.log('Environment: ' + config.app.env);
+console.log('Environment: ' + (process.env.NODE_ENV || config.app.env) );
 console.log('------ logging ------');
