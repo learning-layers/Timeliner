@@ -2,9 +2,8 @@
 
 var Router = require('koa-router');
 
-module.exports = function (app) {
+module.exports = function (apiRouter) {
 
-  var apiRouter = new Router({ prefix: '/api' });
   var helloRouter = new Router({ prefix: '/hello' });
 
   helloRouter.get('/', function *(){
@@ -14,8 +13,5 @@ module.exports = function (app) {
     this.body = "Hello " + this.params.name + "!";
   });
 
-
   apiRouter.use('', helloRouter.routes(), helloRouter.allowedMethods());
-  app.use(apiRouter.routes());
-  app.use(apiRouter.allowedMethods());
 };

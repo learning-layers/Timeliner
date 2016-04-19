@@ -3,7 +3,7 @@
 var app    = require('koa')();
 var router = require('koa-router');
 
-var config = require('./config/config');
+var config = require(__dirname + '/config/config');
 var appEnv = process.env.NODE_ENV || config.app.env;
 
 //Middleware: request logger
@@ -17,7 +17,7 @@ if ( appEnv !== 'test' ) {
 }
 
 // Routes
-require('./app/routes')(app);
+require(__dirname + '/app/routes')(app);
 
 // Start app
 if (!module.parent) {
