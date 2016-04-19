@@ -6,13 +6,14 @@ var router = require('koa-router');
 var config = require('./config/config');
 var appEnv = process.env.NODE_ENV || config.app.env;
 
+//Middleware: request logger
+function *reqLogger(next){
+  console.log('%s - %s %s',new Date().toISOString(), this.req.method, this.req.url);
+  yield next;
+}
+
 if ( appEnv !== 'test' ) {
-  //Middleware: request logger
-  function *reqlogger(next){
-    console.log('%s - %s %s',new Date().toISOString(), this.req.method, this.req.url);
-    yield next;
-  }
-  app.use(reqlogger);
+  app.use(reqLogger);
 }
 
 // Routes
