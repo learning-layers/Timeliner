@@ -6,6 +6,8 @@ var router = require('koa-router');
 var config = require(__dirname + '/config/config');
 var appEnv = process.env.NODE_ENV || config.app.env;
 
+require(__dirname + '/db')(config);
+
 //Middleware: request logger
 function *reqLogger(next){
   console.log('%s - %s %s',new Date().toISOString(), this.req.method, this.req.url);
