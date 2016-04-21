@@ -7,6 +7,14 @@ module.exports = {
     db: {
       uri: 'mongodb://localhost/timeliner',
       options: {}
+    },
+    mail: {
+      from: '"Timeliner" <no-reply@timeliner.me>',
+      smtp: {
+        hostname: '',
+        login: '',
+        password: ''
+      }
     }
   }
 };
