@@ -9,6 +9,9 @@ var appEnv = process.env.NODE_ENV || config.app.env;
 // Instanciate the MongoDB connection (mongoose)
 require(__dirname + '/app/db')(config);
 
+// Require database models
+require('./app/models/user');
+
 //Middleware: request logger
 function *reqLogger(next){
   console.log('%s - %s %s',new Date().toISOString(), this.req.method, this.req.url);
