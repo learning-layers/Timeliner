@@ -6,7 +6,8 @@ var router = require('koa-router');
 var config = require(__dirname + '/config/config');
 var appEnv = process.env.NODE_ENV || config.app.env;
 
-require(__dirname + '/db')(config);
+// Instanciate the MongoDB connection (mongoose)
+require(__dirname + '/app/db')(config);
 
 //Middleware: request logger
 function *reqLogger(next){
