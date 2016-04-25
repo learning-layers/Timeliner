@@ -13,5 +13,9 @@ module.exports = function (apiRouter) {
     this.body = "Hello " + this.params.name + "!";
   });
 
+  helloRouter.post('/', function *(){
+    this.body = {message: "hello post"};
+  });
+
   apiRouter.use('', helloRouter.routes(), helloRouter.allowedMethods());
 };

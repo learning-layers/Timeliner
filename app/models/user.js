@@ -14,6 +14,7 @@ var userSchema = new Schema({
       middle: String,
       last: String
     },
+    isActivated: Boolean,
     created: Date,
     updated: Date,
     confirmationKey: {
