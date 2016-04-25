@@ -10,6 +10,7 @@ module.exports = {
     },
     mail: {
       from: '"Timeliner" <no-reply@timeliner.me>',
+      subject: 'Timeliner automatic email message',
       smtp: {
         hostname: '',
         login: '',
