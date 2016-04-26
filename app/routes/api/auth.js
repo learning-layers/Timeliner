@@ -12,7 +12,7 @@ module.exports = function (apiRouter) {
   authRouter.post('/register', bodyParser, function *(){
     try {
       var user = new User({
-        email: this.request.body.email,
+        email: this.request.body.email.toLowerCase(),
         confirmationKey: {
           key: generateConfirmationKey(),
           created: new Date()
