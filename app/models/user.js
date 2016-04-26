@@ -26,6 +26,9 @@ var userSchema = new Schema({
     toJSON : {
       transform: function (doc, ret, options) {
         delete ret.password;
+        delete ret.isActivated;
+        delete ret.updated;
+        delete ret.__v;
       }
     }
   });
@@ -56,7 +59,12 @@ userSchema.methods.comparePassword = function (password) {
 
 userSchema.statics.matchUser = function *(email, password) {
   var user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
-  if (!user) throw new Error('User not found');
+  if (!user) {
+    throw new Error('User not found');
+  }
+  if (user.isActivated !== true) {
+    throw new Error('User not active');
+  }
 
   if (user.comparePassword(password)){
     return user;
