@@ -16,6 +16,10 @@ module.exports = {
         login: '',
         password: ''
       }
+    },
+    jwt: {
+      algorithm: 'HS512',
+      issuer: 'timeliner.app'
     }
   }
 };

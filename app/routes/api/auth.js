@@ -4,8 +4,7 @@ var Router = require('koa-router');
 var User = require('mongoose').model('User');
 var bodyParser = require('koa-body')();
 var crypto = require('crypto');
-var config = require(__dirname + '/../../../config/config');
-var jwt = require('jsonwebtoken');
+const auth = require(__dirname + '/../../auth');
 
 module.exports = function (apiRouter) {
 
@@ -74,9 +73,7 @@ module.exports = function (apiRouter) {
         var user = yield User.matchUser(this.request.body.email, this.request.body.password);
         this.body = {
           user: user,
-          token: jwt.sign({
-            sub: user._id
-          }, config.app.secret) // TODO This should be part of standalone module
+          token: auth.generateAuthToken({ sub: user._id })
         };
       } catch (err) {
         console.log(err); // TODO Remove me
@@ -87,6 +84,16 @@ module.exports = function (apiRouter) {
       }
     }
   });
+
+  // TODO Remove me as soon as example is no longer needed
+  /*
+  authRouter.get('/protected', auth.ensureAuthenticated, auth.ensureUser, function *() {
+    this.status = 200;
+    this.body = {
+      user: this.user
+    };
+  });
+  */
 
   apiRouter.use('', authRouter.routes(), authRouter.allowedMethods());
 };
