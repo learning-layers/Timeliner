@@ -3,6 +3,8 @@
 This is the main repo for Timeliner project
 More info coming soon.
 
+[![Build Status](https://travis-ci.org/learning-layers/timeliner.svg?branch=master)](https://travis-ci.org/learning-layers/timeliner)
+
 ## Prerequisites
 
 Please note that we will be using certain versions of base components and platforms and will not be actively handling cases when someone uses different ones. We target LTS (Long Term Support) ones if at all possible.
