@@ -20,4 +20,11 @@ describe('Api Hello', function() {
            .expect('Hello Tester!')
            .end(done);
   });
+  it('should just fail', function(done) {
+    request
+           .get('/api/hellow')
+           .expect('Content-Type', /json/)
+           .expect(200)
+           .end(done);
+  });
 });
