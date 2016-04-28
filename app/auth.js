@@ -16,7 +16,8 @@ const User = require('mongoose').model('User');
 
 function generateAuthToken(payload) {
   let options = {
-    audience: ['api']
+    audience: ['api'],
+    expiresIn: '24h'
   };
   options = _.defaults(options, defaultSignOptions);
 
