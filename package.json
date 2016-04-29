@@ -18,7 +18,8 @@
     "lodash": "^4.11.1",
     "mongoose": "^4.4.12",
     "nodemailer": "^2.3.2",
-    "passport-local": "^1.0.0"
+    "passport-local": "^1.0.0",
+    "request-promise": "^3.0.0"
   },
   "repository": {
     "type": "git",

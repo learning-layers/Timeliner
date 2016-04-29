@@ -5,6 +5,7 @@ var User = require('mongoose').model('User');
 var bodyParser = require('koa-body')();
 var crypto = require('crypto');
 const auth = require(__dirname + '/../../auth');
+const reCaptcha = require(__dirname + '/../../reCaptcha')();
 
 module.exports = function (apiRouter) {
 
@@ -12,6 +13,8 @@ module.exports = function (apiRouter) {
 
   authRouter.post('/register', bodyParser, function *(){
     try {
+      yield reCaptcha.verify(this.request.body.captchaResponse, this.request.ip);
+      
       var user = new User({
         email: this.request.body.email.toLowerCase(),
         confirmationKey: {
@@ -20,17 +23,26 @@ module.exports = function (apiRouter) {
         },
         isActivated: false
       });
+      
       user = yield user.save();
+      
       this.status = 201;
       this.body = {
         email: user.email,
         key: user.confirmationKey.key
       };
     } catch (err) {
-      this.status = 409;
-      this.body = {
-        message: 'Email already registered'
-      };
+      if(err.message == 'captcha_verification_invalid'){
+        this.status = 401;
+        this.body = {
+          message: 'Captcha verification failed. Are you a robot?'
+        };
+      } else if(err.code == 11000){  // Mongo error code 11000 - duplicate key
+        this.status = 409;
+        this.body = {
+          message: 'Email already registered'
+        };
+      }
     }
   });
 

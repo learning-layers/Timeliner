@@ -20,6 +20,7 @@ module.exports = {
     jwt: {
       algorithm: 'HS512',
       issuer: 'timeliner.app'
-    }
+    },
+    reCaptchaSecret: ''
   }
 };
