@@ -14,7 +14,7 @@ module.exports = function (apiRouter) {
   authRouter.post('/register', bodyParser, function *(){
     try {
       yield reCaptcha.verify(this.request.body.captchaResponse, this.request.ip);
-      
+
       var user = new User({
         email: this.request.body.email.toLowerCase(),
         confirmationKey: {
@@ -23,9 +23,9 @@ module.exports = function (apiRouter) {
         },
         isActivated: false
       });
-      
+
       user = yield user.save();
-      
+
       this.status = 201;
       this.body = {
         email: user.email,
@@ -97,15 +97,12 @@ module.exports = function (apiRouter) {
     }
   });
 
-  // TODO Remove me as soon as example is no longer needed
-  /*
-  authRouter.get('/protected', auth.ensureAuthenticated, auth.ensureUser, function *() {
+  authRouter.get('/me', auth.ensureAuthenticated, auth.ensureUser, function *() {
     this.status = 200;
     this.body = {
       user: this.user
-    };
+    }
   });
-  */
 
   apiRouter.use('', authRouter.routes(), authRouter.allowedMethods());
 };
