@@ -58,7 +58,6 @@ module.exports = {
       this.user = {
         _id: decoded.sub
       };
-      return yield next;
     } catch (err) {
       // TODO Remove me
       console.log(err);
@@ -67,6 +66,8 @@ module.exports = {
         message: 'token_verification_failed'
       };
     }
+
+    yield next;
   },
   ensureUser: function *(next) {
     if ( !this.user || !this.user._id ) {
@@ -82,12 +83,13 @@ module.exports = {
       var user = yield User.findOne({ '_id': this.user._id }).exec();
       // TODO A few check for user being activted and nit banned are needed
       this.user = user;
-      return yield next;
     } catch (err) {
       this.status = 401;
       this.body = {
         message: 'user_not_found'
       };
     }
+
+    yield next;
   }
 };
