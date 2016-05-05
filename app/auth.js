@@ -38,17 +38,13 @@ module.exports = {
   verifyAuthToken: verifyAuthToken,
   ensureAuthenticated: function *(next) {
     if ( !this.header || !this.header.authorization ) {
-      this.status = 401;
-      this.body = {
-        message: 'authorization_header_missing'
-      };
+      this.throw(401, 'authorization_header_missing');
+      return;
     }
 
     if ( !/^Bearer\s/i.test(this.header.authorization) ) {
-      this.status = 401;
-      this.body = {
-        message: 'malformed_or_wrong_authorization_header'
-      };
+      this.throw(401, 'malformed_or_wrong_authorization_header');
+      return;
     }
 
     try {
@@ -59,37 +55,39 @@ module.exports = {
         _id: decoded.sub
       };
     } catch (err) {
-      // TODO Remove me
-      console.log(err);
-      this.status = 401;
-      this.body = {
-        message: 'token_verification_failed'
-      };
+      this.thow(401, 'token_verification_failed');
+      return;
     }
 
-    yield next;
+    if ( this.user && this.user._id ) {
+      return yield next;
+    }
   },
   ensureUser: function *(next) {
     if ( !this.user || !this.user._id ) {
-      this.status = 401;
-      this.body = {
-        message: 'user_missing'
-      };
+      this.throw(401, 'user_identifier_missing');
+      return;
     }
 
     try {
       // TODO Make sure to document the convention on how the user unique
       // identirier is found and data is replaced with real User object
-      var user = yield User.findOne({ '_id': this.user._id }).exec();
-      // TODO A few check for user being activted and nit banned are needed
-      this.user = user;
+      this.user = yield User.findOne({ '_id': this.user._id }).exec();
     } catch (err) {
-      this.status = 401;
-      this.body = {
-        message: 'user_not_found'
-      };
+      this.throw(404, 'user_not_found');
+      return;
     }
 
-    yield next;
+    if ( this.user ) {
+      return yield next;
+    }
+  },
+  ensureAdmin: function *(next) {
+    if ( this.user && this.user.isAdmin === true ) {
+      return yield next;
+    } else {
+      this.throw(403, 'user_not_admin');
+      return;
+    }
   }
 };
