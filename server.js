@@ -1,5 +1,8 @@
 "use strict";
 
+const fs = require('fs');
+const path = require('path');
+
 var app    = require('koa')();
 var router = require('koa-router');
 
@@ -10,7 +13,12 @@ var appEnv = process.env.NODE_ENV || config.app.env;
 require(__dirname + '/app/db')(config);
 
 // Require database models
-require('./app/models/user');
+const modelsPath = path.normalize(path.join(__dirname, "/app/models"));
+fs.readdirSync(modelsPath).forEach(function(file) {
+  if (~file.indexOf('js')) {
+    require(path.join(modelsPath, file));
+  }
+});
 
 //Middleware: request logger
 function *reqLogger(next){

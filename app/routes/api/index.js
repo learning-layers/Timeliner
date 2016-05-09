@@ -10,9 +10,6 @@ module.exports = function (app) {
   //TODO cors should be only on api, not app
   app.use(cors());
 
-  require(__dirname + '/hello')(apiRouter);
-  require(__dirname + '/auth')(apiRouter);
-
   apiRouter.use(function *(next) {
     try {
       yield next;
@@ -30,6 +27,10 @@ module.exports = function (app) {
       this.app.emit('error', err, this);
     }
   });
+
+  require(__dirname + '/hello')(apiRouter);
+  require(__dirname + '/auth')(apiRouter);
+  require(__dirname + '/projects')(apiRouter);
 
   app.use(apiRouter.routes());
   app.use(apiRouter.allowedMethods());
