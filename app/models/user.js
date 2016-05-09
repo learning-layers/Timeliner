@@ -1,12 +1,12 @@
 "use strict";
 
-var mongoose = require('mongoose');
-var bcrypt   = require('bcrypt-nodejs');
+const mongoose = require('mongoose');
+const bcrypt   = require('bcrypt-nodejs');
 
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-// create a schema
-var userSchema = new Schema({
+// Create a schema
+let userSchema = new Schema({
     email: { type: String, unique: true, required: true },
     password: String,
     name: {
@@ -34,7 +34,7 @@ var userSchema = new Schema({
   });
 
 userSchema.pre('save', function(done) {
-  var currentDate = new Date();
+  const currentDate = new Date();
 
   this.updated = currentDate;
 
@@ -45,7 +45,7 @@ userSchema.pre('save', function(done) {
 
   // only hash the password if it has been modified (or is new)
   if (this.isModified('password')) {
-    var salt = bcrypt.genSaltSync();
+    const salt = bcrypt.genSaltSync();
     this.password = bcrypt.hashSync(this.password, salt);
   }
 
@@ -58,7 +58,7 @@ userSchema.methods.comparePassword = function (password) {
 };
 
 userSchema.statics.matchUser = function *(email, password) {
-  var user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
+  const user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
   if (!user) {
     throw new Error('User not found');
   }
@@ -74,7 +74,7 @@ userSchema.statics.matchUser = function *(email, password) {
 };
 
 userSchema.statics.findByConfirmationKey = function *(confirmKey) {
-  var user = yield this.findOne({ 'confirmationKey.key': confirmKey }).exec();
+  const user = yield this.findOne({ 'confirmationKey.key': confirmKey }).exec();
   if (!user) throw new Error('User not found');
 
 
@@ -82,8 +82,29 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
   return user;
 };
 
+userSchema.statics.getUsersCount = function *(query) {
+  if ( !(query || typeof query === 'object') ) {
+    query = {};
+  }
+  const count = yield this.count(query);
+
+  if (!count) {
+    throw new Error('No count fetched');
+  }
+
+  return count;
+};
+
+userSchema.statics.getActiveUsersCount = function *() {
+  return yield this.getUsersCount({ 'isActivated' : true });
+};
+
+userSchema.statics.getInactiveUsersCount = function *() {
+  return yield this.getUsersCount({ 'isActivated': false });
+};
 
 
-var User = mongoose.model('User', userSchema);
+
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

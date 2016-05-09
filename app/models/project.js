@@ -1,7 +1,6 @@
 "use strict";
 
 const mongoose = require('mongoose');
-
 const Schema = mongoose.Schema;
 
 // Create a schema
@@ -23,7 +22,7 @@ let projectSchema = new Schema({
   });
 
 projectSchema.pre('save', function(done) {
-  let currentDate = new Date();
+  const currentDate = new Date();
 
   this.updated = currentDate;
 
@@ -34,6 +33,6 @@ projectSchema.pre('save', function(done) {
   done();
 });
 
-let Project = mongoose.model('Project', projectSchema);
+const Project = mongoose.model('Project', projectSchema);
 
 module.exports = Project;
