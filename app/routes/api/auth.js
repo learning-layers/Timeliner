@@ -71,6 +71,7 @@ module.exports = function (apiRouter) {
       this.body = user;
     } catch (err) {
       console.log(err)
+      // TODO Handle errors and respond correctly
     }
   });
 

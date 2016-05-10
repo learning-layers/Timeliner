@@ -18,12 +18,27 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.post('/', auth.ensureAuthenticated, auth.ensureUser, bodyParser, function *() {
+    if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    const title = this.request.body.title.trim();
+    const start = new Date(this.request.body.start);
+    const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
+
+    if ( end && end < start ) {
+      this.throw(400, 'end_date_before_start');
+      return;
+    }
+
     try {
       let project = new Project({
-        title: this.request.body.title,
-        start: new Date(this.request.body.start),
-        end: new Date(this.request.body.end),
+        title: title,
+        start: start,
+        end: end,
         creator: this.user._id,
+        owner: this.user._id,
         participants: [this.user._id]
       });
 
@@ -46,6 +61,14 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.delete('/:project', auth.ensureAuthenticated, auth.ensureUser, function *() {
+    this.throw(501, 'not_implemented');
+  });
+
+  projectRouter.get('/:project/join', auth.ensureAuthenticated, auth.ensureUser, function *() {
+    this.throw(501, 'not_implemented');
+  });
+
+  projectRouter.get('/:project/leave', auth.ensureAuthenticated, auth.ensureUser, function *() {
     this.throw(501, 'not_implemented');
   });
 
