@@ -10,9 +10,9 @@ let projectSchema = new Schema({
     end: { type: Date },
     creator: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    participants:  { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], index: true },
+    participants:  { type: [{ type: Schema.Types.ObjectId, ref: 'Participant' }], index: true },
     created: Date,
-    updated: Date,
+    updated: Date
   },
   {
     toJSON : {
