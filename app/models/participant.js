@@ -31,6 +31,19 @@ participantSchema.pre('save', function(done) {
   done();
 });
 
+/**
+ * Returns an array of Project identifiers current user belongs to
+ * @param  {string} userId User unique identifier
+ * @return {array}         Array with Project unique identifiers
+ */
+participantSchema.statics.getUserProjects = function *(userId) {
+  const participants = yield Participant.find({ user: userId, status: { $in: ['pending', 'active'] } }, { project: 1 }).lean().exec();
+
+  return participants.map(function(single) {
+    return single.project;
+  });
+};
+
 const Participant = mongoose.model('Participant', participantSchema);
 
 module.exports = Participant;
