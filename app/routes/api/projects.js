@@ -197,6 +197,8 @@ module.exports = function (apiRouter) {
       participant = yield participant.save();
       participant = yield Participant.populate(participant, 'user');
 
+      // XXX Missing addition to Project
+
       this.status = 200;
       this.body = {
         data: participant
@@ -215,6 +217,8 @@ module.exports = function (apiRouter) {
       }
 
       yield Participant.find({ project: this.params.project, user: this.user._id }).remove().exec();
+
+      // XXX Missing removal from Project
 
       this.status = 200;
       this.body = {
