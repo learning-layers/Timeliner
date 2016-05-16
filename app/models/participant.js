@@ -19,6 +19,8 @@ let participantSchema = new Schema({
     }
   });
 
+participantSchema.index({ user: 1, project: 1 }, { unique: true } );
+
 participantSchema.pre('save', function(done) {
   const currentDate = new Date();
 

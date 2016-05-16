@@ -5,12 +5,13 @@ const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
 const bodyParser = require('koa-body')();
 const auth = require(__dirname + '/../../auth');
+const ObjectId = require('mongoose').Types.ObjectId;
 
 module.exports = function (apiRouter) {
   // TODO Needs a bit more control over what kind of data is populated
   // Full user objects might not be needed. It could be enough to get:
   // _id, name and email (not sure of last one is really needed here)
-  // Limiting amout of loaded data should be a wise choice
+  // Limiting amount of loaded data should be a wise choice
   const projectPopulateOptions = [{
     path: 'creator',
     model: 'User'
@@ -27,20 +28,40 @@ module.exports = function (apiRouter) {
   }];
 
   const ensureProjectOwner = function *(next) {
+    let project;
+
     try {
-      const project = Project.findOne({ _id: this.params.project }).exec();
-
-      if ( !project ) {
-        this.throw(404, 'not_found');
-        return;
-      }
-
-      if ( project.owner !== this.user._id ) {
-        this.throw(403, 'not_a_project_owner');
-        return;
-      }
+      project = Project.findOne({ _id: this.params.project }).exec();
     } catch (err) {
       this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !project ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( project.owner !== this.user._id ) {
+      this.throw(403, 'not_a_project_owner');
+      return;
+    }
+
+    return yield next;
+  };
+
+  const ensureProjectAccessRight = function *(next) {
+    let participant;
+
+    try {
+      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: { $in: ['pending', 'active'] } }).exec();
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !participant ) {
+      this.throw(403, 'not_a_project_participant');
       return;
     }
 
@@ -48,15 +69,17 @@ module.exports = function (apiRouter) {
   };
 
   const ensureActiveProjectParticipant = function *(next) {
-    try {
-      const participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'active' }).exec();
+    let participant;
 
-      if ( !participant ) {
-        this.throw(403, 'not_a_project_participant');
-        return;
-      }
+    try {
+      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'active' }).exec();
     } catch (err) {
       this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !participant ) {
+      this.throw(403, 'not_a_project_participant');
       return;
     }
 
@@ -64,15 +87,17 @@ module.exports = function (apiRouter) {
   };
 
   const ensurePendingProjectParticipant = function *(next) {
-    try {
-      const participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'pending' }).exec();
+    let participant;
 
-      if ( !participant ) {
-        this.throw(403, 'not_a_project_participant');
-        return;
-      }
+    try {
+      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'pending' }).exec();
     } catch (err) {
       this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !participant ){
+      this.throw(403, 'not_a_project_participant');
       return;
     }
 
@@ -98,13 +123,28 @@ module.exports = function (apiRouter) {
         data: projects
       };
     } catch(err) {
-      console.log(err);
       this.throw(500, 'internal_server_error');
     }
   });
 
-  projectRouter.get('/:project', auth.ensureAuthenticated, auth.ensureUser, function *() {
-    this.throw(501, 'not_implemented');
+  projectRouter.get('/:project/', auth.ensureAuthenticated, auth.ensureUser, ensureProjectAccessRight, function *() {
+    let project;
+
+    try {
+      project = yield Project.findOne({ _id: this.params.project }).populate(projectPopulateOptions).exec();
+
+      this.status = 200;
+      this.body = {
+        data: project
+      };
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+    }
+
+    if ( !project ) {
+      this.throw(404, 'not_found');
+      return;
+    }
   });
 
   projectRouter.post('/', auth.ensureAuthenticated, auth.ensureUser, bodyParser, function *() {
@@ -157,7 +197,6 @@ module.exports = function (apiRouter) {
         data: project
       };
     } catch(err) {
-      console.log('Create project', err);
       this.throw(500, 'creation_failed');
     }
   });
@@ -185,7 +224,7 @@ module.exports = function (apiRouter) {
   });
 
   // TODO Consider moving these functionalities into standalone Router
-  projectRouter.get('/:project/participant/invite/:user', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/invite/:user', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
     // TODO Make sure that user parameter exists and is a user
     try {
       let participant = new Participant({
@@ -195,30 +234,49 @@ module.exports = function (apiRouter) {
       });
 
       participant = yield participant.save();
+      yield Project.findByIdAndUpdate(this.params.project, {
+        $push: {
+          participants: participant._id
+        }
+      }).exec();
       participant = yield Participant.populate(participant, 'user');
-
-      // XXX Missing addition to Project
 
       this.status = 200;
       this.body = {
         data: participant
       };
     } catch (err) {
+      if ( err.code == 11000 ) {
+        this.throw(409, 'already_is_a_participant');
+        return;
+      }
+
       this.throw(500, 'internal_server_error');
     }
   });
 
-  projectRouter.get('/:project/participant/leave', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/leave', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    let project;
+
     try {
-      const project = Project.findOne({ _id: this.params.project }).exec();
+      project = Project.findOne({ _id: this.params.project }).exec();
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( project.owner === this.user._id ) {
-        this.throw(403, 'owner_can_not_leave')
-      }
+    if ( project.owner === this.user._id ) {
+      this.throw(403, 'owner_can_not_leave');
+      return;
+    }
 
-      yield Participant.find({ project: this.params.project, user: this.user._id }).remove().exec();
-
-      // XXX Missing removal from Project
+    try {
+      const participant = yield Participant.findOneAndRemove({ project: this.params.project, user: this.user._id }).exec();
+      yield Project.findByIdAndUpdate(this.params.project, {
+        $pull: {
+          participants: ObjectId(participant._id)
+        }
+      }).exec();
 
       this.status = 200;
       this.body = {
@@ -231,7 +289,7 @@ module.exports = function (apiRouter) {
     }
   });
 
-  projectRouter.get('/:project/participant/accept', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/accept', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }).exec();
 
@@ -246,7 +304,7 @@ module.exports = function (apiRouter) {
     }
   });
 
-  projectRouter.get('/:project/participant/reject', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/reject', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }).exec();
 
@@ -259,6 +317,49 @@ module.exports = function (apiRouter) {
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
+  });
+
+  projectRouter.post('/:project/participants/remove/:user', auth.ensureAuthenticated, auth.ensureUser, ensureProjectOwner, function *() {
+    let project, participant;
+
+    try {
+      project = Project.findOne({ _id: this.params.project }).exec();
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( project.owner === this.user._id ) {
+      this.throw(403, 'owner_can_not_be_removed');
+      return;
+    }
+
+    try {
+      participant = yield Participant.findOneAndRemove({ project: this.params.project, user: this.params.user }).exec();
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+    }
+
+    if ( !participant ) {
+      this.throw(404, 'not_a_project_participant');
+    }
+
+    try {
+      yield Project.findByIdAndUpdate(this.params.project, {
+        $pull: {
+          participants: ObjectId(participant._id)
+        }
+      }).exec();
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+    }
+
+    this.status = 200;
+    this.body = {
+      data: {
+        project: this.params.project
+      }
+    };
   });
 
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());
