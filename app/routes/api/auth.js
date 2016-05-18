@@ -84,6 +84,7 @@ module.exports = function (apiRouter) {
     } else {
       try {
         var user = yield User.matchUser(this.request.body.email, this.request.body.password);
+        yield user.updateLastLogin();
         this.body = {
           user: user,
           token: auth.generateAuthToken({ sub: user._id })

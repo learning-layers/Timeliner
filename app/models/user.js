@@ -20,7 +20,8 @@ let userSchema = new Schema({
     confirmationKey: {
       key: String,
       created: Date
-    }
+    },
+    lastLogin: Date
   },
   {
     toJSON : {
@@ -29,6 +30,7 @@ let userSchema = new Schema({
         delete ret.isActivated;
         delete ret.updated;
         delete ret.__v;
+        delete ret.lastLogin;
       }
     }
   });
@@ -55,6 +57,11 @@ userSchema.pre('save', function(done) {
 // checking if password is valid
 userSchema.methods.comparePassword = function (password) {
   return bcrypt.compareSync(password, this.password);
+};
+
+userSchema.methods.updateLastLogin = function *() {
+  this.lastLogin = new Date();
+  this.save();
 };
 
 userSchema.statics.matchUser = function *(email, password) {
