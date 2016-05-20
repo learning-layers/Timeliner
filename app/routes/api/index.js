@@ -3,7 +3,7 @@
 var Router = require('koa-router');
 var cors = require('kcors');
 
-module.exports = function (app) {
+module.exports = function (app, config) {
 
   var apiRouter = new Router({ prefix: '/api' });
 
@@ -29,7 +29,7 @@ module.exports = function (app) {
   });
 
   require(__dirname + '/hello')(apiRouter);
-  require(__dirname + '/auth')(apiRouter);
+  require(__dirname + '/auth')(apiRouter, config);
   require(__dirname + '/projects')(apiRouter);
 
   app.use(apiRouter.routes());

@@ -3,11 +3,11 @@
 const fs = require('fs');
 const path = require('path');
 
-var app    = require('koa')();
-var router = require('koa-router');
+const app    = require('koa')();
+const router = require('koa-router');
 
-var config = require(__dirname + '/config/config');
-var appEnv = process.env.NODE_ENV || config.app.env;
+const config = require(__dirname + '/config/config');
+const appEnv = process.env.NODE_ENV || config.app.env;
 
 // Instanciate the MongoDB connection (mongoose)
 require(__dirname + '/app/db')(config);
@@ -31,7 +31,7 @@ if ( appEnv !== 'test' ) {
 }
 
 // Routes
-require(__dirname + '/app/routes')(app);
+require(__dirname + '/app/routes')(app, config);
 
 // Start app
 if (!module.parent) {

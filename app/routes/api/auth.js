@@ -7,7 +7,7 @@ var crypto = require('crypto');
 const auth = require(__dirname + '/../../auth');
 const reCaptcha = require(__dirname + '/../../reCaptcha')();
 
-module.exports = function (apiRouter) {
+module.exports = function (apiRouter, config) {
 
   var authRouter = new Router({ prefix: '/auth' });
 
@@ -88,6 +88,62 @@ module.exports = function (apiRouter) {
         this.body = {
           user: user,
           token: auth.generateAuthToken({ sub: user._id })
+        };
+      } catch (err) {
+        console.log(err); // TODO Remove me
+        this.status = 401;
+        this.body = {
+          message: 'authentication_failed'
+        };
+      }
+    }
+  });
+
+  authRouter.post('/login/facebook', bodyParser, function *() {
+    this.thow(501, 'not_implemented');
+    return;
+
+    if ( !( this.request.body.access_token ) ) {
+      this.status = 401;
+      this.body = {
+        message: 'credentials_missing'
+      };
+    } else {
+      try {
+        // TODO Fetch user data and establish connection
+        var user = yield User.findBySocialId('facebook', id);
+        yield user.updateLastLogin();
+        this.body = {
+          user: user,
+          token: auth.generateAuthToken({ sub: user._id, social: true, provider: 'facebook' })
+        };
+      } catch (err) {
+        console.log(err); // TODO Remove me
+        this.status = 401;
+        this.body = {
+          message: 'authentication_failed'
+        };
+      }
+    }
+  });
+
+  authRouter.post('/login/google', bodyParser, function *() {
+    this.thow(501, 'not_implemented');
+    return;
+
+    if ( !( this.request.body.access_token ) ) {
+      this.status = 401;
+      this.body = {
+        message: 'credentials_missing'
+      };
+    } else {
+      try {
+        // TODO Fetch user data and establish connection
+        var user = yield User.findBySocialId('google', id);
+        yield user.updateLastLogin();
+        this.body = {
+          user: user,
+          token: auth.generateAuthToken({ sub: user._id, social: true, provider: 'google' })
         };
       } catch (err) {
         console.log(err); // TODO Remove me

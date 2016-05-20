@@ -21,7 +21,16 @@ let userSchema = new Schema({
       key: String,
       created: Date
     },
-    lastLogin: Date
+    lastLogin: Date,
+    social: [{
+      provider: { type: String, unique: true, required: true },
+      id: { type: String, unique: true, required: true },
+      token: {
+        value: { type: String, required: true },
+        expires: { type: Date, required: true }
+      },
+      created: { type: Date, default: Date.now }
+    }]
   },
   {
     toJSON : {
@@ -31,6 +40,7 @@ let userSchema = new Schema({
         delete ret.updated;
         delete ret.__v;
         delete ret.lastLogin;
+        delete ret.social;
       }
     }
   });
@@ -86,6 +96,14 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
 
 
   //TODO check key validity
+  return user;
+};
+
+userSchema.statics.findBySocialId = function *(provider, id) {
+  const user = yield this.findOne({ "social.provider": provider, "social.id": id}).exec();
+  if (!user) throw new Error('User not found');
+
+  // TODO Check user validity (isAcivated and not blocked)
   return user;
 };
 
