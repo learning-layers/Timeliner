@@ -5,6 +5,8 @@ const bcrypt   = require('bcrypt-nodejs');
 
 const Schema = mongoose.Schema;
 
+const _ = require('lodash');
+
 // Create a schema
 let userSchema = new Schema({
     email: { type: String, unique: true, required: true },
@@ -74,6 +76,24 @@ userSchema.methods.updateLastLogin = function *() {
   this.save();
 };
 
+userSchema.methods.updateSocialProviderAccessToken = function *(provider, id, token, expires) {
+  let socialIndex = _.findIndex(this.social, function(single) {
+    return single.provider === provider && single.id === id;
+  });
+
+  if ( socialIndex === -1 ) {
+    throw new Error('Updated provider does not exist');
+  }
+
+  // TODO It might make sense to use some findAndUpdate methods with $set
+  if ( this.social[socialIndex].token.value !== token ) {
+    this.social[socialIndex].token.value = token;
+    this.social[socialIndex].token.expires = new Date( (new Date()).getTime() + (1000 * parseInt(expires) ) );
+
+    yield this.save();
+  }
+};
+
 userSchema.statics.matchUser = function *(email, password) {
   const user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
   if (!user) {
@@ -81,6 +101,10 @@ userSchema.statics.matchUser = function *(email, password) {
   }
   if (user.isActivated !== true) {
     throw new Error('User not active');
+  }
+
+  if ( !user.password ) {
+    throw new Error('Not a local user');
   }
 
   if (user.comparePassword(password)){
@@ -101,6 +125,14 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
 
 userSchema.statics.findBySocialId = function *(provider, id) {
   const user = yield this.findOne({ "social.provider": provider, "social.id": id}).exec();
+  if (!user) throw new Error('User not found');
+
+  // TODO Check user validity (isAcivated and not blocked)
+  return user;
+};
+
+userSchema.statics.findBySocialToken = function *(provider, token) {
+  const user = yield this.findOne({ "social.provider": provider, "social.token.value": token}).exec();
   if (!user) throw new Error('User not found');
 
   // TODO Check user validity (isAcivated and not blocked)

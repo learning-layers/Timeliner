@@ -1,14 +1,17 @@
 "use strict";
 
-var Router = require('koa-router');
-var cors = require('kcors');
+const Router = require('koa-router');
+const cors = require('kcors');
+const mount = require('koa-mount');
+
 
 module.exports = function (app, config) {
 
   var apiRouter = new Router({ prefix: '/api' });
 
-  //TODO cors should be only on api, not app
-  app.use(cors());
+  app.use(mount('/api', cors({
+    credentials: true
+  })));
 
   apiRouter.use(function *(next) {
     try {

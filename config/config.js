@@ -1,6 +1,7 @@
 "use strict";
 module.exports = {
   app: {
+    uiUrl: 'http://localhost:9000',
     port: 3000,
     env: 'development',
     secret: 'eX0u5tsuUydDDtUSHbnef1EE',

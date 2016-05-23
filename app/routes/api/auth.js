@@ -86,8 +86,10 @@ module.exports = function (apiRouter, config) {
         var user = yield User.matchUser(this.request.body.email, this.request.body.password);
         yield user.updateLastLogin();
         this.body = {
-          user: user,
-          token: auth.generateAuthToken({ sub: user._id })
+          data: {
+            user: user,
+            token: auth.generateAuthToken({ sub: user._id })
+          }
         };
       } catch (err) {
         console.log(err); // TODO Remove me
@@ -99,59 +101,44 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  authRouter.post('/login/facebook', bodyParser, function *() {
-    this.thow(501, 'not_implemented');
-    return;
+  authRouter.post('/login/social', bodyParser, function *() {
+    let grantData, state;
 
-    if ( !( this.request.body.access_token ) ) {
-      this.status = 401;
-      this.body = {
-        message: 'credentials_missing'
-      };
-    } else {
-      try {
-        // TODO Fetch user data and establish connection
-        var user = yield User.findBySocialId('facebook', id);
-        yield user.updateLastLogin();
-        this.body = {
-          user: user,
-          token: auth.generateAuthToken({ sub: user._id, social: true, provider: 'facebook' })
-        };
-      } catch (err) {
-        console.log(err); // TODO Remove me
-        this.status = 401;
-        this.body = {
-          message: 'authentication_failed'
-        };
-      }
+    if ( !this.session.grant ) {
+      this.throw(400, 'bad_request_');
+      return;
     }
-  });
 
-  authRouter.post('/login/google', bodyParser, function *() {
-    this.thow(501, 'not_implemented');
-    return;
+    grantData = this.session.grant;
 
-    if ( !( this.request.body.access_token ) ) {
+    if ( !( this.request.body.state ) ) {
+      this.throw(400, 'state_missing')
+      return;
+    }
+
+    if ( this.request.body.state !== grantData.state ) {
+      this.throw(400, 'wrong_state');
+      return;
+    }
+
+    try {
+      // TODO Fetch user data and establish connection
+      var user = yield User.findBySocialToken(grantData.provider, grantData.response.access_token);
+      yield user.updateLastLogin();
+      this.body = {
+        data: {
+          user: user,
+          token: auth.generateAuthToken({ sub: user._id, social: true, provider: grantData.provider })
+        }
+      };
+
+      this.session = null;
+    } catch (err) {
+      console.log(err); // TODO Remove me
       this.status = 401;
       this.body = {
-        message: 'credentials_missing'
+        message: 'authentication_failed'
       };
-    } else {
-      try {
-        // TODO Fetch user data and establish connection
-        var user = yield User.findBySocialId('google', id);
-        yield user.updateLastLogin();
-        this.body = {
-          user: user,
-          token: auth.generateAuthToken({ sub: user._id, social: true, provider: 'google' })
-        };
-      } catch (err) {
-        console.log(err); // TODO Remove me
-        this.status = 401;
-        this.body = {
-          message: 'authentication_failed'
-        };
-      }
     }
   });
 
