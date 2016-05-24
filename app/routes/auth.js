@@ -124,6 +124,11 @@ module.exports = function (app, config) {
       return;
     }
 
+    if ( !userData.email ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'email_is_missing'));
+      return;
+    }
+
     try {
       let user = yield User.findBySocialId(grantData.provider, userData.id);
 
