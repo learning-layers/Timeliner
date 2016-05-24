@@ -60,7 +60,10 @@ module.exports = {
     me: googleMe,
     contects: googleContacts
   },
-  constructUiRedirectUrl: function(baseUrl, state) {
+  constructUiSuccessRedirectUrl: function(baseUrl, state) {
     return baseUrl + '/#/auth/' + state;
+  },
+  constructUiErrorRedirectUrl: function(baseUrl, code, message) {
+    return baseUrl + '/#/login?code=' + encodeURIComponent(code) + '&message=' + encodeURIComponent(message);
   }
 };

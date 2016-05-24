@@ -6,7 +6,8 @@ const session = require('koa-generic-session');
 const Grant = require('grant-koa');
 const facebookMe = require(__dirname + '/../lib/social').facebook.me;
 const googleMe = require(__dirname + '/../lib/social').google.me;
-const constructUiRedirectUrl = require(__dirname + '/../lib/social').constructUiRedirectUrl;
+const constructUiSuccessRedirectUrl = require(__dirname + '/../lib/social').constructUiSuccessRedirectUrl;
+const constructUiErrorRedirectUrl = require(__dirname + '/../lib/social').constructUiErrorRedirectUrl;
 const User = require('mongoose').model('User');
 
 
@@ -27,8 +28,13 @@ module.exports = function (app, config) {
   authRouter.get('/facebook/callback', function *() {
     let grantData, userData;
 
+    if ( this.query && this.query['error[error]'] === 'access_denied' && this.query['error[error_code]'] === '200' && this.query['error[error_reason]'] === 'user_denied' ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 200, 'user_denied'));
+      return;
+    }
+
     if ( !this.session.grant ) {
-      this.throw(400);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'bad_request'));
       return;
     }
 
@@ -37,8 +43,12 @@ module.exports = function (app, config) {
     try {
       userData = yield facebookMe(grantData.response.access_token);
     } catch (err) {
-      // TODO Different error code needed
-      this.throw(500);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 404, 'could_not_load_profile_data'));
+      return;
+    }
+
+    if ( !userData.email ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'email_is_missing'));
       return;
     }
 
@@ -47,12 +57,12 @@ module.exports = function (app, config) {
 
       yield user.updateSocialProviderAccessToken(grantData.provider, userData.id, grantData.response.access_token, grantData.response.raw.expires);
 
-      this.response.redirect(constructUiRedirectUrl(config.app.uiUrl, grantData.state));
+      this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
       return;
     } catch (err) {
       if ( err.message !== 'User not found' ) {
         console.log(err);
-        this.throw(500);
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
         return;
       }
     }
@@ -81,34 +91,36 @@ module.exports = function (app, config) {
       console.log(err);
 
       if ( err.code === 11000 ) {
-        this.throw(409);
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 409, 'email_already_used'));
         return;
       }
 
-      this.throw(500);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
       return;
     }
 
-    this.response.redirect(constructUiRedirectUrl(config.app.uiUrl, grantData.state));
+    this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
   });
 
   authRouter.get('/google/callback', function *() {
     let grantData, userData;
 
+    if ( this.query && this.query['error[error]'] === 'access_denied' ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 200, 'user_denied'));
+      return;
+    }
+
     if ( !this.session.grant ) {
-      this.throw(400);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'bad_request'));
       return;
     }
 
     grantData = this.session.grant;
 
-    console.log(grantData);
-
     try {
       userData = yield googleMe(grantData.response.access_token);
     } catch (err) {
-      // TODO Different error code needed
-      this.throw(500);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 404, 'could_not_load_profile_data'));
       return;
     }
 
@@ -117,12 +129,12 @@ module.exports = function (app, config) {
 
       yield user.updateSocialProviderAccessToken(grantData.provider, userData.id, grantData.response.access_token, grantData.response.raw.expires_in);
 
-      this.response.redirect(constructUiRedirectUrl(config.app.uiUrl, grantData.state));
+      this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
       return;
     } catch (err) {
       if ( err.message !== 'User not found' ) {
         console.log(err);
-        this.throw(500);
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
         return;
       }
     }
@@ -151,15 +163,15 @@ module.exports = function (app, config) {
       console.log(err);
 
       if ( err.code === 11000 ) {
-        this.throw(409);
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 409, 'email_already_used'));
         return;
       }
 
-      this.throw(500);
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
       return;
     }
 
-    this.response.redirect(constructUiRedirectUrl(config.app.uiUrl, grantData.state));
+    this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
   });
 
   app.use(authRouter.routes());
