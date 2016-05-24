@@ -61,7 +61,7 @@ module.exports = {
     contects: googleContacts
   },
   constructUiSuccessRedirectUrl: function(baseUrl, state) {
-    return baseUrl + '/#/auth/' + state;
+    return baseUrl + '/#/login/' + state;
   },
   constructUiErrorRedirectUrl: function(baseUrl, code, message) {
     return baseUrl + '/#/login?code=' + encodeURIComponent(code) + '&message=' + encodeURIComponent(message);

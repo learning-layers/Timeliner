@@ -124,7 +124,7 @@ module.exports = function (app, config) {
       return;
     }
 
-    if ( !userData.email ) {
+    if ( !( userData.emails && userData.emails.length > 0 && userData.emails[0].value ) ) {
       this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'email_is_missing'));
       return;
     }
