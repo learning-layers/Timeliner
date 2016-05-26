@@ -16,7 +16,9 @@ let userSchema = new Schema({
       middle: String,
       last: String
     },
+    image: { type: String },
     isActivated: Boolean,
+    isAdmin: Boolean,
     created: Date,
     updated: Date,
     confirmationKey: {

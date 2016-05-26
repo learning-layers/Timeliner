@@ -106,8 +106,17 @@ module.exports = function (apiRouter) {
 
   const projectRouter = new Router({ prefix: '/projects' });
 
-  projectRouter.get('/', auth.ensureAuthenticated, auth.ensureUser, function *() {
-    this.throw(501, 'not_implemented');
+  projectRouter.get('/', auth.ensureAuthenticated, auth.ensureUser, auth.ensureAdmin, function *() {
+    try {
+      const projects = yield Project.find({}).populate(projectPopulateOptions).exec();
+
+      this.status = 200;
+      this.body = {
+        data: projects
+      };
+    } catch (err) {
+      this.throw(500, 'internal_server_error');
+    }
   });
 
   projectRouter.get('/mine', auth.ensureAuthenticated, auth.ensureUser, function *() {

@@ -73,6 +73,7 @@ module.exports = function (app, config) {
         first: userData.first_name,
         last: userData.last_name
       },
+      image: userData.picture.data.url, // TODO Better storage and handling needed
       isActivated: true,
       social: [{
         provider: grantData.provider,
@@ -150,6 +151,7 @@ module.exports = function (app, config) {
         first: userData.name.givenName,
         last: userData.name.familyName
       },
+      image: userData.image.url, // TODO Better storage and handling needed
       isActivated: true,
       social: [{
         provider: grantData.provider,
