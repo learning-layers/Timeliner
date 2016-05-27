@@ -87,7 +87,7 @@ module.exports = function (app, config) {
     });
 
     try {
-      user = yield user.save();
+      user = yield User.createAccount(user);
     } catch(err) {
       console.log(err);
 
@@ -165,7 +165,7 @@ module.exports = function (app, config) {
     });
 
     try {
-      user = yield user.save();
+      user = yield User.createAccount(user);
     } catch(err) {
       console.log(err);
 

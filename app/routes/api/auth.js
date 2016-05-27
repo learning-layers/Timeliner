@@ -24,12 +24,14 @@ module.exports = function (apiRouter, config) {
         isActivated: false
       });
 
-      user = yield user.save();
+      user = yield User.createAccount(user);
 
       this.status = 201;
       this.body = {
-        email: user.email,
-        key: user.confirmationKey.key
+        data: {
+          email: user.email,
+          key: user.confirmationKey.key
+        }
       };
     } catch (err) {
       if(err.message == 'captcha_verification_invalid'){
@@ -42,6 +44,9 @@ module.exports = function (apiRouter, config) {
         this.body = {
           message: 'Email already registered'
         };
+      } else {
+        console.error(err);
+        throw err;
       }
     }
   });

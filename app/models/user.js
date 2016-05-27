@@ -49,7 +49,7 @@ let userSchema = new Schema({
     }
   });
 
-userSchema.pre('save', function(done) {
+userSchema.pre('save', function(next) {
   const currentDate = new Date();
 
   this.updated = currentDate;
@@ -65,7 +65,7 @@ userSchema.pre('save', function(done) {
     this.password = bcrypt.hashSync(this.password, salt);
   }
 
-  done();
+  next();
 });
 
 // checking if password is valid
@@ -104,6 +104,22 @@ userSchema.methods.updateSocialProviderAccessToken = function *(provider, id, to
 
     yield this.save();
   }
+};
+
+/**
+ * Creates user account from provided User Schema object.
+ * Makes sure that initial user becomes an administrator.
+ * @param  {Object} user User Schema object
+ * @return {Object}      Saved User Schema object
+ */
+userSchema.statics.createAccount = function *(user) {
+  let count = yield this.getUsersCount({});
+
+  if ( count === 0 ) {
+    user.isAdmin = true;
+  }
+
+  return yield user.save();
 };
 
 userSchema.statics.matchUser = function *(email, password) {
@@ -157,10 +173,6 @@ userSchema.statics.getUsersCount = function *(query) {
   }
   const count = yield this.count(query);
 
-  if (!count) {
-    throw new Error('No count fetched');
-  }
-
   return count;
 };
 
@@ -175,7 +187,6 @@ userSchema.statics.getInactiveUsersCount = function *() {
 userSchema.statics.isAdmin = function(user) {
   return user.isAdmin;
 };
-
 
 
 const User = mongoose.model('User', userSchema);
