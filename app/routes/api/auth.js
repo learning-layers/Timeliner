@@ -122,7 +122,6 @@ module.exports = function (apiRouter, config) {
     }
 
     try {
-      // TODO Fetch user data and establish connection
       var user = yield User.findBySocialToken(grantData.provider, grantData.response.access_token);
       yield user.updateLastLogin();
       this.body = {

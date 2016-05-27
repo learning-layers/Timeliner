@@ -83,7 +83,7 @@ module.exports = {
     }
   },
   ensureAdmin: function *(next) {
-    if ( this.user && this.user.isAdmin === true ) {
+    if ( this.user && User.isAdmin(this.user) ) {
       return yield next;
     } else {
       this.throw(403, 'user_not_admin');

@@ -75,7 +75,17 @@ userSchema.methods.comparePassword = function (password) {
 
 userSchema.methods.updateLastLogin = function *() {
   this.lastLogin = new Date();
-  this.save();
+  yield this.save();
+};
+
+userSchema.methods.addAdmin = function *() {
+  this.isAdmin = true;
+  return yield this.save();
+};
+
+userSchema.methods.removeAdmin = function *() {
+  this.isAdmin = false;
+  return yield this.save();
 };
 
 userSchema.methods.updateSocialProviderAccessToken = function *(provider, id, token, expires) {
@@ -160,6 +170,10 @@ userSchema.statics.getActiveUsersCount = function *() {
 
 userSchema.statics.getInactiveUsersCount = function *() {
   return yield this.getUsersCount({ 'isActivated': false });
+};
+
+userSchema.statics.isAdmin = function(user) {
+  return user.isAdmin;
 };
 
 
