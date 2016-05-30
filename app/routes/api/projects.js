@@ -110,10 +110,7 @@ module.exports = function (apiRouter) {
     try {
       const projects = yield Project.find({}).populate(projectPopulateOptions).exec();
 
-      this.status = 200;
-      this.body = {
-        data: projects
-      };
+      this.apiRespond(projects);
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
@@ -127,10 +124,7 @@ module.exports = function (apiRouter) {
       // _id, name and email (not sure of last one is really needed here)
       // Limiting amout of loaded data should be a wise choice
       const projects = yield Project.find({ _id: { $in: ids } }).populate(projectPopulateOptions).exec();
-      this.status = 200;
-      this.body = {
-        data: projects
-      };
+      this.apiRespond(projects);
     } catch(err) {
       this.throw(500, 'internal_server_error');
     }
@@ -142,17 +136,13 @@ module.exports = function (apiRouter) {
     try {
       project = yield Project.findOne({ _id: this.params.project }).populate(projectPopulateOptions).exec();
 
-      this.status = 200;
-      this.body = {
-        data: project
-      };
+      this.apiRespond(project);
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
 
     if ( !project ) {
       this.throw(404, 'not_found');
-      return;
     }
   });
 
@@ -201,10 +191,7 @@ module.exports = function (apiRouter) {
       // TODO Check it this could fail and effect others somehow
       project = yield Project.populate(project, projectPopulateOptions);
 
-      this.status = 200;
-      this.body = {
-        data: project
-      };
+      this.apiRespond(project);
     } catch(err) {
       this.throw(500, 'creation_failed');
     }
@@ -221,12 +208,9 @@ module.exports = function (apiRouter) {
       yield Project.find({ _id: this.params.project }).remove().exec();
       yield Participant.find({ project: this.params.project }).remove().exec();
 
-      this.status = 200;
-      this.body = {
-        data: {
-          _id: this.params.project
-        }
-      };
+      this.apiRespond({
+        _id: this.params.project
+      })
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
@@ -250,10 +234,7 @@ module.exports = function (apiRouter) {
       }).exec();
       participant = yield Participant.populate(participant, 'user');
 
-      this.status = 200;
-      this.body = {
-        data: participant
-      };
+      this.apiRespond(participant);
     } catch (err) {
       if ( err.code == 11000 ) {
         this.throw(409, 'already_is_a_participant');
@@ -287,12 +268,7 @@ module.exports = function (apiRouter) {
         }
       }).exec();
 
-      this.status = 200;
-      this.body = {
-        data: {
-          project: this.params.project
-        }
-      };
+      this.apiRespond(this.params.project)
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
@@ -302,12 +278,7 @@ module.exports = function (apiRouter) {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }).exec();
 
-      this.status = 200;
-      this.body = {
-        data: {
-          project: this.params.project
-        }
-      };
+      this.apiRespond(this.params.project);
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
@@ -317,12 +288,7 @@ module.exports = function (apiRouter) {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }).exec();
 
-      this.status = 200;
-      this.body = {
-        data: {
-          project: this.params.project
-        }
-      };
+      this.apiRespond(this.params.project);
     } catch (err) {
       this.throw(500, 'internal_server_error');
     }
@@ -363,12 +329,7 @@ module.exports = function (apiRouter) {
       this.throw(500, 'internal_server_error');
     }
 
-    this.status = 200;
-    this.body = {
-      data: {
-        project: this.params.project
-      }
-    };
+    this.apiRespond(this.params.project);
   });
 
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());

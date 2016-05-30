@@ -3,6 +3,7 @@
 const Router = require('koa-router');
 const cors = require('kcors');
 const mount = require('koa-mount');
+const _ = require('lodash');
 
 
 module.exports = function (app, config) {
@@ -14,17 +15,43 @@ module.exports = function (app, config) {
   })));
 
   apiRouter.use(function *(next) {
+    this.apiRespond = function () {
+      if (arguments.length == 1 && typeof arguments[0] === 'object'){
+        this.status = 200;
+        this.body = {
+          data: arguments[0]
+        };
+      } else if (arguments.length == 2 && typeof arguments[0] === 'number'){
+        this.status = arguments[0];
+        this.body = {
+          data: arguments[1]
+        };
+      } else if (arguments.length == 2 && typeof arguments[0] === 'object'){
+        this.status = arguments[1];
+        this.body = {
+          data: arguments[0]
+        };
+      }
+    };
+    yield next;
+  });
+
+  apiRouter.use(function *(next) {
     try {
       yield next;
     } catch (err) {
       this.status = err.status || 500;
-      let responseBody = { message: 'internal_server_error' };
+      let responseBody = { errors: [] };
       if ( err.status ) {
-        if ( typeof err.message === 'object' ) {
-          responseBody = err.message;
+        if ( _.isArray(err.message) ) {
+          responseBody.errors = err.message;
+        } else if ( typeof err.message === 'object' ) {
+          responseBody.errors.push( err.message );
         } else {
-          responseBody.message = err.message;
+          responseBody.errors.push({ message: err.message });
         }
+      } else {
+        responseBody.errors.push({ message: 'internal_server_error' });
       }
       this.body = responseBody;
       this.app.emit('error', err, this);

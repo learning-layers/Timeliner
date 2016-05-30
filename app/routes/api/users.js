@@ -12,13 +12,14 @@ module.exports = function (apiRouter) {
     try {
       const users = yield User.find({}).exec();
 
-      this.status = 200;
-      this.body = {
-        data: users
-      };
+      this.apiRespond(users);
     } catch(err) {
       this.throw(500, 'internal_server_error');
     }
+  });
+
+  userRouter.get('/kala', function *() {
+    this.throw(501, 'not_implemented');
   });
 
   userRouter.put('/:user/manage/admin', auth.ensureAuthenticated, auth.ensureUser, auth.ensureAdmin, bodyParser, function *() {
@@ -64,13 +65,10 @@ module.exports = function (apiRouter) {
       this.throw(500, 'internal_server_error');
     }
 
-    this.status = 200;
-    this.body = {
-      data: {
-        _id: user._id,
-        isAdmin: user.isAdmin
-      }
-    };
+    this.apiRespond({
+      _id: user._id,
+      isAdmin: user.isAdmin
+    });
   });
 
   apiRouter.use('', userRouter.routes(), userRouter.allowedMethods());

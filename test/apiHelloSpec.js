@@ -7,17 +7,25 @@ describe('Api Hello', function() {
   it('/ replies with hello world', function(done) {
     request
            .get('/api/hello')
-           .expect('Content-Type', /text\/plain/)
+           .expect('Content-Type', /json/)
            .expect(200)
-           .expect('Hello world!')
+           .expect({
+             data: {
+               message: 'Hello world!'
+             }
+           })
            .end(done);
   });
   it('/:name replies with Hello :name!', function(done) {
     request
            .get('/api/hello/Tester')
-           .expect('Content-Type', /text\/plain/)
+           .expect('Content-Type', /json/)
            .expect(200)
-           .expect('Hello Tester!')
+           .expect({
+             data: {
+               message: 'Hello Tester!'
+             }
+           })
            .end(done);
   });
 });
