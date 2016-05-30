@@ -43,6 +43,12 @@ module.exports = {
         secret: '',
         scope: ['profile', 'https://www.googleapis.com/auth/plus.login', 'email'],
         callback: '/auth/google/callback'
+      },
+      linkedin2: {
+        key: '',
+        secret: '',
+        scope: ['r_basicprofile', 'r_emailaddress', ''],
+        callback: '/auth/linkedin2/callback'
       }
     }
   }

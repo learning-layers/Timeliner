@@ -3,6 +3,7 @@
 const Purest = require('purest');
 const facebook = new Purest({ provider: 'facebook' });
 const google = new Purest({ provider: 'google' });
+const linkedin = new Purest({ provider: 'linkedin' });
 
 // XXX All these functions has to go into a standalone module
 // and become properly written to be used with generators
@@ -10,7 +11,7 @@ function facebookMe(token) {
   return function(done) {
     facebook.query().get('me?fields=id,email,name,first_name,last_name,picture').auth(token).request(function(err, res, body) {
       if ( err ) {
-        console.log('Request error', err);
+        console.error('Request error', err);
         done(new Error('Request error'), body);
       } else {
         done(null, body);
@@ -32,7 +33,7 @@ function googleMe(token) {
   return function(done) {
     google.query('plus').get('people/me').auth(token).request(function(err, res, body) {
       if ( err ) {
-        console.log('Request error', err);
+        console.error('Request error', err);
         done(new Error('Request error'), body);
       } else {
         done(null, body);
@@ -51,6 +52,23 @@ function googleContacts(token) {
   }
 }
 
+function linkedinMe(token) {
+  return function(done) {
+    // Possible fields
+    // id,email-address,first-name,last-name,formatted-name,headline,picture-url,auth-token,distance,num-connections
+    linkedin
+      .query()
+      .select('people/~:(id,email-address,first-name,last-name,picture-url)').auth(token).request(function(err, res, body) {
+      if ( err ) {
+        console.error('Request error', err);
+        done(new Error('Request error'), body);
+      } else {
+        done(null, body);
+      }
+    });
+  }
+}
+
 module.exports = {
   facebook: {
     me: facebookMe,
@@ -59,6 +77,9 @@ module.exports = {
   google: {
     me: googleMe,
     contects: googleContacts
+  },
+  linkedin: {
+    me: linkedinMe
   },
   constructUiSuccessRedirectUrl: function(baseUrl, state) {
     return baseUrl + '/#/login/' + state;

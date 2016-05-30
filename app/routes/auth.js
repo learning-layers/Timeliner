@@ -4,10 +4,12 @@ const Router = require('koa-router');
 const mount = require('koa-mount');
 const session = require('koa-generic-session');
 const Grant = require('grant-koa');
-const facebookMe = require(__dirname + '/../lib/social').facebook.me;
-const googleMe = require(__dirname + '/../lib/social').google.me;
-const constructUiSuccessRedirectUrl = require(__dirname + '/../lib/social').constructUiSuccessRedirectUrl;
-const constructUiErrorRedirectUrl = require(__dirname + '/../lib/social').constructUiErrorRedirectUrl;
+const social = require(__dirname + '/../lib/social');
+const facebookMe = social.facebook.me;
+const googleMe = social.google.me;
+const linkedinMe = social.linkedin.me;
+const constructUiSuccessRedirectUrl = social.constructUiSuccessRedirectUrl;
+const constructUiErrorRedirectUrl = social.constructUiErrorRedirectUrl;
 const User = require('mongoose').model('User');
 
 
@@ -61,7 +63,7 @@ module.exports = function (app, config) {
       return;
     } catch (err) {
       if ( err.message !== 'User not found' ) {
-        console.log(err);
+        console.error(err);
         this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
         return;
       }
@@ -89,7 +91,7 @@ module.exports = function (app, config) {
     try {
       user = yield User.createAccount(user);
     } catch(err) {
-      console.log(err);
+      console.error(err);
 
       if ( err.code === 11000 ) {
         this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 409, 'email_already_used'));
@@ -139,7 +141,7 @@ module.exports = function (app, config) {
       return;
     } catch (err) {
       if ( err.message !== 'User not found' ) {
-        console.log(err);
+        console.error(err);
         this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
         return;
       }
@@ -167,7 +169,85 @@ module.exports = function (app, config) {
     try {
       user = yield User.createAccount(user);
     } catch(err) {
-      console.log(err);
+      console.error(err);
+
+      if ( err.code === 11000 ) {
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 409, 'email_already_used'));
+        return;
+      }
+
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
+      return;
+    }
+
+    this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
+  });
+
+  authRouter.get('/linkedin2/callback', function *() {
+    let grantData, userData;
+
+    if ( this.query && this.query['error[error]'] === 'access_denied' ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 200, 'user_denied'));
+      return;
+    }
+
+    if ( !this.session.grant ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'bad_request'));
+      return;
+    }
+
+    grantData = this.session.grant;
+
+    try {
+      userData = yield linkedinMe(grantData.response.access_token);
+    } catch (err) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 404, 'could_not_load_profile_data'));
+      return;
+    }
+
+    if ( !( userData.emailAddress ) ) {
+      this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 400, 'email_is_missing'));
+      return;
+    }
+
+    try {
+      let user = yield User.findBySocialId(grantData.provider, userData.id);
+
+      yield user.updateSocialProviderAccessToken(grantData.provider, userData.id, grantData.response.access_token, grantData.response.raw.expires_in);
+
+      this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
+      return;
+    } catch (err) {
+      if ( err.message !== 'User not found' ) {
+        console.error(err);
+        this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 500, 'internal_server_error'));
+        return;
+      }
+    }
+
+    let user = new User({
+      email: userData.emailAddress.toLowerCase(),
+      name: {
+        first: userData.firstName,
+        last: userData.lastName
+      },
+      image: userData.pictureUrl, // TODO Better storage and handling needed
+      isActivated: true,
+      social: [{
+        provider: grantData.provider,
+        id: userData.id,
+        token: {
+          value: grantData.response.access_token,
+          expires: new Date( (new Date()).getTime() + (1000 * parseInt(grantData.response.raw.expires_in) ) ),
+          created: new Date()
+        }
+      }]
+    });
+
+    try {
+      user = yield User.createAccount(user);
+    } catch(err) {
+      console.error(err);
 
       if ( err.code === 11000 ) {
         this.response.redirect(constructUiErrorRedirectUrl(config.app.uiUrl, 409, 'email_already_used'));
