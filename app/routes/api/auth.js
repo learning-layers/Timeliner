@@ -73,10 +73,17 @@ module.exports = function (apiRouter, config) {
       user.isActivated = true;
 
       user = yield user.save();
-      this.body = user;
+      yield user.updateLastLogin();
+      this.body = {
+        data: {
+          user: user,
+          token: auth.generateAuthToken({ sub: user._id })
+        }
+      };
     } catch (err) {
-      console.log(err)
+      console.error(err)
       // TODO Handle errors and respond correctly
+      this.throw(500, 'internal_server_error');
     }
   });
 
@@ -97,7 +104,8 @@ module.exports = function (apiRouter, config) {
           }
         };
       } catch (err) {
-        console.log(err); // TODO Remove me
+        // TODO Better handling might be needed
+        console.error(err);
         this.status = 401;
         this.body = {
           message: 'authentication_failed'
