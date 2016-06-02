@@ -31,6 +31,8 @@ module.exports = function (app, config) {
         this.body = {
           data: arguments[0]
         };
+      } else {
+        throw new Error('Unsuitable api response');
       }
     };
     yield next;

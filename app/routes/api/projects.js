@@ -33,6 +33,7 @@ module.exports = function (apiRouter) {
     try {
       project = Project.findOne({ _id: this.params.project }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -56,6 +57,7 @@ module.exports = function (apiRouter) {
     try {
       participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: { $in: ['pending', 'active'] } }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -74,6 +76,7 @@ module.exports = function (apiRouter) {
     try {
       participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'active' }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -92,6 +95,7 @@ module.exports = function (apiRouter) {
     try {
       participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'pending' }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -112,6 +116,7 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(projects);
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -126,6 +131,7 @@ module.exports = function (apiRouter) {
       const projects = yield Project.find({ _id: { $in: ids } }).populate(projectPopulateOptions).exec();
       this.apiRespond(projects);
     } catch(err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -138,6 +144,7 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(project);
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
 
@@ -193,6 +200,7 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(project);
     } catch(err) {
+      console.error(err);
       this.throw(500, 'creation_failed');
     }
   });
@@ -212,6 +220,7 @@ module.exports = function (apiRouter) {
         _id: this.params.project
       })
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -241,6 +250,7 @@ module.exports = function (apiRouter) {
         return;
       }
 
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -251,6 +261,7 @@ module.exports = function (apiRouter) {
     try {
       project = Project.findOne({ _id: this.params.project }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -268,8 +279,11 @@ module.exports = function (apiRouter) {
         }
       }).exec();
 
-      this.apiRespond(this.params.project)
+      this.apiRespond({
+        _id: this.params.project
+      });
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -278,8 +292,12 @@ module.exports = function (apiRouter) {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }).exec();
 
-      this.apiRespond(this.params.project);
+      // TODO See if responding with participant makes sense
+      this.apiRespond({
+        _id: this.params.project
+      });
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -288,8 +306,12 @@ module.exports = function (apiRouter) {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }).exec();
 
-      this.apiRespond(this.params.project);
+      // TODO See if responding with participant makes sense
+      this.apiRespond({
+        _id: this.params.project
+      });
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -300,6 +322,7 @@ module.exports = function (apiRouter) {
     try {
       project = Project.findOne({ _id: this.params.project }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
@@ -312,6 +335,7 @@ module.exports = function (apiRouter) {
     try {
       participant = yield Participant.findOneAndRemove({ project: this.params.project, user: this.params.user }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
 
@@ -326,10 +350,13 @@ module.exports = function (apiRouter) {
         }
       }).exec();
     } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
 
-    this.apiRespond(this.params.project);
+    this.apiRespond({
+      _id: this.params.project
+    });
   });
 
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());
