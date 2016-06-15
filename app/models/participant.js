@@ -8,6 +8,7 @@ let participantSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     status: { type: String, enum: ['pending', 'active', 'placeholder'], required: true, inxex: true },
+    showOnTimeline: { type: Boolean, default: true },
     created: Date,
     updated: Date
   },
