@@ -359,5 +359,33 @@ module.exports = function (apiRouter) {
     });
   });
 
+  projectRouter.post('/:project/timeline/hide', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: false }).exec();
+
+      // TODO See if responding with participant makes sense
+      this.apiRespond({
+        _id: this.params.project
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/timeline/show', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: true }).exec();
+
+      // TODO See if responding with participant makes sense
+      this.apiRespond({
+        _id: this.params.project
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());
 };
