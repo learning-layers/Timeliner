@@ -13,7 +13,7 @@ let participantSchema = new Schema({
   },
   {
     toJSON : {
-      transform: function (doc, ret, options) {
+      transform: function (doc, ret) {
         delete ret.__v;
       }
     }

@@ -6,7 +6,7 @@ const request = require('request-promise');
 module.exports = function() {
 
   const verificationApiURL = 'https://www.google.com/recaptcha/api/siteverify';
-  
+
   return {
     /**
      * Generator that verifies solved Captcha with Google
@@ -22,7 +22,7 @@ module.exports = function() {
         throw new Error('captcha_remoteip_missing');
       }
 
-      var postData = {
+      let postData = {
         secret: config.app.reCaptchaSecret,
         response: response,
         remoteip: remoteip
@@ -36,11 +36,11 @@ module.exports = function() {
           body = JSON.parse(body);
           if (body.success){
             return true;
-          } else if (body.success == false){
+          } else if (body.success === false){
             throw new Error('captcha_verification_invalid');
           }
-          throw new Error('captcha_verification_error')
-        })
+          throw new Error('captcha_verification_error');
+        });
     }
   };
 };

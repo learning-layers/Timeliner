@@ -8,7 +8,7 @@ const _ = require('lodash');
 
 module.exports = function (app, config) {
 
-  var apiRouter = new Router({ prefix: '/api' });
+  const apiRouter = new Router({ prefix: '/api' });
 
   app.use(mount('/api', cors({
     credentials: true
@@ -16,17 +16,17 @@ module.exports = function (app, config) {
 
   apiRouter.use(function *(next) {
     this.apiRespond = function () {
-      if (arguments.length == 1 && typeof arguments[0] === 'object'){
+      if (arguments.length === 1 && typeof arguments[0] === 'object'){
         this.status = 200;
         this.body = {
           data: arguments[0]
         };
-      } else if (arguments.length == 2 && typeof arguments[0] === 'number'){
+      } else if (arguments.length === 2 && typeof arguments[0] === 'number'){
         this.status = arguments[0];
         this.body = {
           data: arguments[1]
         };
-      } else if (arguments.length == 2 && typeof arguments[0] === 'object'){
+      } else if (arguments.length === 2 && typeof arguments[0] === 'object'){
         this.status = arguments[1];
         this.body = {
           data: arguments[0]

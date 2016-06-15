@@ -5,11 +5,11 @@ const config = require(__dirname + '/../config/config');
 const jwt = require('jsonwebtoken');
 const secret = config.app.secret;
 const defaultSignOptions = {
-  algorithm: config.app.jwt.algorithm || 'HS256',
+  algorithm: config.app.jwt.algorithm || 'HS256',
   issuer: config.app.jwt.issuer || 'timeliner.app'
 };
 const defaultVerifyOptions = {
-  algorithms: [config.app.jwt.algorithm || 'HS256'],
+  algorithms: [config.app.jwt.algorithm || 'HS256'],
   issuer: config.app.jwt.issuer || 'timeliner.app'
 };
 const User = require('mongoose').model('User');

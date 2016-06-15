@@ -38,7 +38,7 @@ let userSchema = new Schema({
   },
   {
     toJSON : {
-      transform: function (doc, ret, options) {
+      transform: function (doc, ret) {
         delete ret.password;
         delete ret.isActivated;
         delete ret.updated;
@@ -144,7 +144,9 @@ userSchema.statics.matchUser = function *(email, password) {
 
 userSchema.statics.findByConfirmationKey = function *(confirmKey) {
   const user = yield this.findOne({ 'confirmationKey.key': confirmKey }).exec();
-  if (!user) throw new Error('User not found');
+  if (!user) {
+    throw new Error('User not found');
+  }
 
 
   //TODO check key validity
@@ -153,7 +155,9 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
 
 userSchema.statics.findBySocialId = function *(provider, id) {
   const user = yield this.findOne({ "social.provider": provider, "social.id": id}).exec();
-  if (!user) throw new Error('User not found');
+  if (!user) {
+    throw new Error('User not found');
+  }
 
   // TODO Check user validity (isAcivated and not blocked)
   return user;
@@ -161,7 +165,9 @@ userSchema.statics.findBySocialId = function *(provider, id) {
 
 userSchema.statics.findBySocialToken = function *(provider, token) {
   const user = yield this.findOne({ "social.provider": provider, "social.token.value": token}).exec();
-  if (!user) throw new Error('User not found');
+  if (!user) {
+    throw new Error('User not found');
+  }
 
   // TODO Check user validity (isAcivated and not blocked)
   return user;

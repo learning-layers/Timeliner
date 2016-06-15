@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 const app    = require('koa')();
-const router = require('koa-router');
 
 const config = require(__dirname + '/config/config');
 const appEnv = process.env.NODE_ENV || config.app.env;
@@ -22,7 +21,7 @@ fs.readdirSync(modelsPath).forEach(function(file) {
 
 //Middleware: request logger
 function *reqLogger(next){
-  console.log('%s - %s %s',new Date().toISOString(), this.req.method, this.req.url);
+  console.log('%s - %s %s', new Date().toISOString(), this.req.method, this.req.url);
   yield next;
 }
 
@@ -35,7 +34,7 @@ require(__dirname + '/app/routes')(app, config);
 
 // Start app
 if (!module.parent) {
-  app.listen(process.env.PORT || config.app.port);
+  app.listen(process.env.PORT || config.app.port);
   console.log('Server started on port: ' + config.app.port);
   console.log('Environment: ' + appEnv );
   console.log('------ logging ------');

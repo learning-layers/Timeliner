@@ -17,7 +17,7 @@ function facebookMe(token) {
         done(null, body);
       }
     });
-  }
+  };
 }
 
 function facebookFrields(token) {
@@ -26,7 +26,7 @@ function facebookFrields(token) {
       // TODO Handle errors
       done(null, body);
     });
-  }
+  };
 }
 
 function googleMe(token) {
@@ -39,7 +39,7 @@ function googleMe(token) {
         done(null, body);
       }
     });
-  }
+  };
 }
 
 function googleContacts(token) {
@@ -49,7 +49,7 @@ function googleContacts(token) {
     google.query('plus').get('people/me/people/visible').auth(token).request(function(err, res, body) {
       done(null, body);
     });
-  }
+  };
 }
 
 function linkedinMe(token) {
@@ -66,7 +66,7 @@ function linkedinMe(token) {
         done(null, body);
       }
     });
-  }
+  };
 }
 
 module.exports = {

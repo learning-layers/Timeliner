@@ -32,7 +32,7 @@ module.exports = function (apiRouter, config) {
       });
     } catch (err) {
       if(err.message == 'captcha_verification_invalid'){
-        this.throw(401, 'captcha_verification_invalid')
+        this.throw(401, 'captcha_verification_invalid');
       } else if(err.code == 11000){  // Mongo error code 11000 - duplicate key
         this.throw(409, 'email_already_registered');
       } else {
@@ -71,14 +71,14 @@ module.exports = function (apiRouter, config) {
         token: auth.generateAuthToken({ sub: user._id })
       });
     } catch (err) {
-      console.error(err)
+      console.error(err);
       this.throw('user_confirmation_failed');
     }
   });
 
   authRouter.post('/login', bodyParser, function *() {
     if ( !( this.request.body.email && this.request.body.password ) ) {
-      this.throw(401, 'credentials_missing')
+      this.throw(401, 'credentials_missing');
     } else {
       try {
         var user = yield User.matchUser(this.request.body.email, this.request.body.password);
@@ -122,7 +122,7 @@ module.exports = function (apiRouter, config) {
       this.session = null;
     } catch (err) {
       console.log(err); // TODO Remove me
-      this.throw(401, 'authentication_failed')
+      this.throw(401, 'authentication_failed');
     }
   });
 

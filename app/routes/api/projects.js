@@ -218,7 +218,7 @@ module.exports = function (apiRouter) {
 
       this.apiRespond({
         _id: this.params.project
-      })
+      });
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -245,7 +245,7 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(participant);
     } catch (err) {
-      if ( err.code == 11000 ) {
+      if ( err.code === 11000 ) {
         this.throw(409, 'already_is_a_participant');
         return;
       }
