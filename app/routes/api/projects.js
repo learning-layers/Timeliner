@@ -205,8 +205,47 @@ module.exports = function (apiRouter) {
     }
   });
 
-  projectRouter.put('/:project', auth.ensureAuthenticated, auth.ensureUser, function *() {
-    this.throw(501, 'not_implemented');
+  projectRouter.put('/:project', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    try {
+      let project = yield Project.findOne({ _id: this.params.project }).exec();
+
+      if ( this.request.body.title ) {
+        project.title = this.request.body.title.trim();
+      }
+      if ( this.request.body.description ) {
+        project.description = this.request.body.description;
+      }
+      if ( this.request.body.goal ) {
+        project.goal = this.request.body.goal;
+      }
+      if ( this.request.body.status ) {
+        if ( !project.owner.equals(this.user._id) ) {
+          this.throw(403, 'status_change_by_not_owner');
+          return;
+        }
+        project.status = this.request.body.status;
+      }
+      if ( this.request.body.end ) {
+        if ( this.request.body.end && this.request.body.end < project.start ) {
+          this.throw(400, 'end_date_before_start');
+          return;
+        }
+        project.end = new Date(this.request.body.end);
+      } else if ( project.end ) {
+        project.end = undefined;
+      }
+
+      project = yield project.save();
+
+      project = yield Project.populate(project, projectPopulateOptions);
+
+      this.apiRespond(project);
+    } catch(err) {
+      // TODO Need to add handing for NOT FOUND project
+      // Maybe some others
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
   });
 
   projectRouter.delete('/:project', auth.ensureAuthenticated, auth.ensureUser, ensureProjectOwner, function *() {
@@ -266,7 +305,7 @@ module.exports = function (apiRouter) {
       return;
     }
 
-    if ( project.owner === this.user._id ) {
+    if ( project.owner.equals(this.user._id) ) {
       this.throw(403, 'owner_can_not_leave');
       return;
     }
@@ -327,7 +366,7 @@ module.exports = function (apiRouter) {
       return;
     }
 
-    if ( project.owner === this.user._id ) {
+    if ( project.owner.equals(this.user._id) ) {
       this.throw(403, 'owner_can_not_be_removed');
       return;
     }
