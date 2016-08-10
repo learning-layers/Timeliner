@@ -211,11 +211,14 @@ module.exports = function (apiRouter) {
 
       if ( this.request.body.title ) {
         project.title = this.request.body.title.trim();
+      } else {
+        this.throw(400, 'required_parameter_missing');
+        return;
       }
-      if ( this.request.body.description ) {
+      if ( this.request.body.description !== undefined ) {
         project.description = this.request.body.description;
       }
-      if ( this.request.body.goal ) {
+      if ( this.request.body.goal !== undefined ) {
         project.goal = this.request.body.goal;
       }
       if ( this.request.body.status ) {
