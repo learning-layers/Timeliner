@@ -32,6 +32,9 @@ if ( appEnv !== 'test' ) {
 // Routes
 require(__dirname + '/app/routes')(app, config);
 
+// socket.io powered WebSocket
+require(__dirname + '/app/socket')(app);
+
 // Start app
 if (!module.parent) {
   app.listen(process.env.PORT || config.app.port);
