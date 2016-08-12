@@ -3,6 +3,7 @@
 const Router = require('koa-router');
 const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
+const Annotation = require('mongoose').model('Annotation');
 const bodyParser = require('koa-body')();
 const auth = require(__dirname + '/../../auth');
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -25,6 +26,11 @@ module.exports = function (apiRouter) {
       path: 'user',
       model: 'User'
     }
+  }];
+
+  const annotationPopulateOptions = [{
+    path: 'creator',
+    model: 'User'
   }];
 
   const ensureProjectOwner = function *(next) {
@@ -422,6 +428,96 @@ module.exports = function (apiRouter) {
       // TODO See if responding with participant makes sense
       this.apiRespond({
         _id: this.params.project
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.get('/:project/annotations', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      const annotations = yield Annotation.find({ project: this.params.project }).populate(annotationPopulateOptions).exec();
+
+      this.apiRespond(annotations);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/annotations', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.date) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    const title = this.request.body.title.trim();
+    const description = this.request.body.description;
+    const date = new Date(this.request.body.date);
+
+    try {
+      let annotation = new Annotation({
+        title: title,
+        description: description,
+        date: date,
+        creator: this.user._id,
+        project: this.params.project,
+      });
+
+      annotation = yield annotation.save();
+
+
+
+      annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
+
+      this.apiRespond(annotation);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'creation_failed');
+    }
+  });
+
+  projectRouter.put('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    // XXX Need to make sure that annotation belongs to the project
+    // Provided project and annotation IDs might not match
+    try {
+      let annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+
+      if ( this.request.body.title ) {
+        annotation.title = this.request.body.title.trim();
+      } else {
+        this.throw(400, 'required_parameter_missing');
+        return;
+      }
+      if ( this.request.body.description !== undefined ) {
+        annotation.description = this.request.body.description;
+      }
+      if ( this.request.body.date ) {
+        annotation.date = new Date(this.request.body.date);
+      }
+
+      annotation = yield annotation.save();
+
+      annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
+
+      this.apiRespond(annotation);
+    } catch(err) {
+      // TODO Need to add handing for NOT FOUND annotation
+      // Maybe some others
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.delete('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    // XXX Need to make sure that annotation belongs to the project
+    // Provided project and annotation IDs might not match
+    try {
+      yield Annotation.find({ _id: this.params.annotation }).remove().exec();
+
+      this.apiRespond({
+        _id: this.params.annotation
       });
     } catch (err) {
       console.error(err);
