@@ -35,11 +35,8 @@ module.exports = function (app, config) {
         throw new Error('Unsuitable api response');
       }
     };
-    this.emitApiAction = function(type, data) {
-      this.app.emit('apiAction', {
-        type: type,
-        data: data
-      }, this);
+    this.emitApiAction = function(eventType, contentType, data) {
+      this.app.emit(eventType + ':' + contentType, data, this);
     };
     yield next;
   });

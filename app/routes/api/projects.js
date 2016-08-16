@@ -467,9 +467,9 @@ module.exports = function (apiRouter) {
 
       annotation = yield annotation.save();
 
-
-
       annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
+
+      this.emitApiAction('create', 'annotation', annotation);
 
       this.apiRespond(annotation);
     } catch(err) {
@@ -501,6 +501,8 @@ module.exports = function (apiRouter) {
 
       annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
 
+      this.emitApiAction('update', 'annotation', annotation);
+
       this.apiRespond(annotation);
     } catch(err) {
       // TODO Need to add handing for NOT FOUND annotation
@@ -515,6 +517,13 @@ module.exports = function (apiRouter) {
     // Provided project and annotation IDs might not match
     try {
       yield Annotation.find({ _id: this.params.annotation }).remove().exec();
+
+      // XXX Need to load the annotation or just provide the fake object that looks like it
+      // Project identifier is required to transmit to some channel
+      this.emitApiAction('delete', 'annotation', {
+        _id: this.parans.annotation,
+        project: this.params.project
+      });
 
       this.apiRespond({
         _id: this.params.annotation
