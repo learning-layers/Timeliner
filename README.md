@@ -14,10 +14,10 @@ Using different MINOR version is also quite OK and has small possibility for iss
 
 **NB! Possible issues and errors are anticipated if different MAJOR version is used.**
 
-* Node.js - 4.x.x (4.4.3 is currently used)
-* npm.js - 3.x. (3.8.6 is currently used)
+* Node.js - 4.x.x (4.5.0 is currently used)
+* npm.js - 3.x. (3.10.7 is currently used)
 * MongoDB - 3.2.x (3.2.3 is currently used)
-* Angular.js - 1.5.x (1.5.3 is currently used)
+* Angular.js - 1.5.x (1.5.5 is currently used)
 * Socket.IO - 1.4.x (1.4.5 is currently used)
 
 ## Development
