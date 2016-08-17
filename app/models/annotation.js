@@ -7,7 +7,7 @@ const Schema = mongoose.Schema;
 let annotationSchema = new Schema({
     title: { type: String, required: true },
     description: { type: String },
-    date: { type: Date, required: true },
+    start: { type: Date, required: true },
     creator: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     created: Date,

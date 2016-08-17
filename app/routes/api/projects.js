@@ -447,20 +447,20 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.post('/:project/annotations', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
-    if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.date) ) {
+    if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start) ) {
       this.throw(400, 'required_parameter_missing');
       return;
     }
 
     const title = this.request.body.title.trim();
     const description = this.request.body.description;
-    const date = new Date(this.request.body.date);
+    const start = new Date(this.request.body.start);
 
     try {
       let annotation = new Annotation({
         title: title,
         description: description,
-        date: date,
+        start: start,
         creator: this.user._id,
         project: this.params.project,
       });
@@ -493,8 +493,8 @@ module.exports = function (apiRouter) {
       if ( this.request.body.description !== undefined ) {
         annotation.description = this.request.body.description;
       }
-      if ( this.request.body.date ) {
-        annotation.date = new Date(this.request.body.date);
+      if ( this.request.body.start ) {
+        annotation.start = new Date(this.request.body.start);
       }
 
       annotation = yield annotation.save();
