@@ -521,7 +521,7 @@ module.exports = function (apiRouter) {
       // XXX Need to load the annotation or just provide the fake object that looks like it
       // Project identifier is required to transmit to some channel
       this.emitApiAction('delete', 'annotation', {
-        _id: this.parans.annotation,
+        _id: this.params.annotation,
         project: this.params.project
       });
 
