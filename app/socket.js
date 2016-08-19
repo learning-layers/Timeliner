@@ -7,6 +7,9 @@
 const auth = require(__dirname + '/auth');
 const IO = require('koa-socket');
 const io = new IO();
+const co = require('co');
+const Annotation = require('mongoose').model('Annotation');
+const Participant = require('mongoose').model('Participant');
 
 module.exports = function (app) {
   function getRawSocket(ctx) {
@@ -45,23 +48,8 @@ module.exports = function (app) {
   }
   io.attach(app);
 
-  /*io.use( ( ctx, next ) => {
-    console.log('APPLIED');
-    let start = new Date();
-    return next().then( () => {
-      console.log( `response time: ${ new Date() - start }ms` );
-    });
-  });*/
-
   // Only use WebSocket as a transport
   app._io.set( 'transports', ['websocket'] );
-
-  // This allows to directly prevent socket connection
-  app._io.use(function(socket, next) {
-    //console.log('WTF');
-    next();
-    //next( new Error('Authorization failed') );
-  });
 
   io.on('authenticate', ( ctx, data ) => {
     const socket = getRawSocket(ctx);
@@ -121,6 +109,38 @@ module.exports = function (app) {
     }
   });
 
+  // XXX This needs to be changed so that the bulk of the code would reside within
+  // the model itself
+  io.on( 'move:annotation', ( ctx, data ) => {
+    if ( isAuthenticated(ctx) ) {
+      // XXX need to add checks and error handlers
+      // If parameters are passed, user belongs to the project and so on
+      co(function* () {
+        let userId = getAuthenticatedUserId(ctx);
+        let annotation =  yield Annotation.findOne({ _id: data._id }).exec();
+        let participant = yield Participant.findOne({ project: annotation.project, user: userId, status: 'active' }).exec();
+
+        if ( participant ) {
+          annotation.start = new Date(data.start);
+          annotation = yield annotation.save();
+        } else {
+          // TODO A better handling of everything is needed
+          throw new Error('Not a participant');
+        }
+
+        // TODO This needs way better error handling
+        return annotation;
+      }).then(function(annotation) {
+        app._io.in(annotation.project).emit('move:annotation', {
+          _id: annotation._id,
+          start: annotation.start
+        });
+      }, function(err) {
+        console.error(err);
+      });
+    }
+  });
+
   io.on( 'connection', ( ctx, data ) => {
     console.log( 'CONNECTION', data );
     // XXX This approach has to be checked
@@ -151,6 +171,7 @@ module.exports = function (app) {
     app._io.in(annotation.project).emit('update:annotation', annotation);
   });
 
+  // XXX Not real annotation, just data with _id and project (identifiers)
   app.on('delete:annotation', function(annotation) {
     app._io.in(annotation.project).emit('delete:annotation', annotation);
   });
