@@ -4,6 +4,7 @@ const Router = require('koa-router');
 const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
 const Annotation = require('mongoose').model('Annotation');
+const Milestone = require('mongoose').model('Milestone');
 const bodyParser = require('koa-body')();
 const auth = require(__dirname + '/../../auth');
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -29,6 +30,11 @@ module.exports = function (apiRouter) {
   }];
 
   const annotationPopulateOptions = [{
+    path: 'creator',
+    model: 'User'
+  }];
+
+  const milestonePopulateOptions = [{
     path: 'creator',
     model: 'User'
   }];
@@ -527,6 +533,110 @@ module.exports = function (apiRouter) {
 
       this.apiRespond({
         _id: this.params.annotation
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.get('/:project/milestones', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      const milestones = yield Milestone.find({ project: this.params.project }).populate(milestonePopulateOptions).exec();
+
+      this.apiRespond(milestones);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/milestones', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start && this.request.body.color) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    const title = this.request.body.title.trim();
+    const description = this.request.body.description;
+    const start = new Date(this.request.body.start);
+    const color = this.request.body.color;
+
+    try {
+      let milestone = new Milestone({
+        title: title,
+        description: description,
+        start: start,
+        color: color,
+        creator: this.user._id,
+        project: this.params.project,
+      });
+
+      milestone = yield milestone.save();
+
+      milestone = yield Milestone.populate(milestone, milestonePopulateOptions);
+
+      this.emitApiAction('create', 'milestone', milestone);
+
+      this.apiRespond(milestone);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'creation_failed');
+    }
+  });
+
+  projectRouter.put('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    // XXX Need to make sure that milestone belongs to the project
+    // Provided project and milestone IDs might not match
+    try {
+      let milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+
+      if ( this.request.body.title ) {
+        milestone.title = this.request.body.title.trim();
+      } else {
+        this.throw(400, 'required_parameter_missing');
+        return;
+      }
+      if ( this.request.body.description !== undefined ) {
+        milestone.description = this.request.body.description;
+      }
+      if ( this.request.body.start ) {
+        milestone.start = new Date(this.request.body.start);
+      }
+      if ( this.request.body.color ) {
+        milestone.color = this.request.body.color;
+      }
+
+      milestone = yield milestone.save();
+
+      milestone = yield Milestone.populate(milestone, milestonePopulateOptions);
+
+      this.emitApiAction('update', 'milestone', milestone);
+
+      this.apiRespond(milestone);
+    } catch(err) {
+      // TODO Need to add handing for NOT FOUND milestone
+      // Maybe some others
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.delete('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    // XXX Need to make sure that annotation belongs to the project
+    // Provided project and annotation IDs might not match
+    try {
+      yield Milestone.find({ _id: this.params.milestone }).remove().exec();
+
+      // XXX Need to load the milestobe or just provide the fake object that looks like it
+      // Project identifier is required to transmit to some channel
+      this.emitApiAction('delete', 'milestone', {
+        _id: this.params.milestone,
+        project: this.params.project
+      });
+
+      this.apiRespond({
+        _id: this.params.milestone
       });
     } catch (err) {
       console.error(err);

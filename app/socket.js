@@ -8,8 +8,9 @@ const auth = require(__dirname + '/auth');
 const IO = require('koa-socket');
 const io = new IO();
 const co = require('co');
-const Annotation = require('mongoose').model('Annotation');
 const Participant = require('mongoose').model('Participant');
+const Annotation = require('mongoose').model('Annotation');
+const Milestone = require('mongoose').model('Milestone');
 
 module.exports = function (app) {
   function getRawSocket(ctx) {
@@ -141,6 +142,38 @@ module.exports = function (app) {
     }
   });
 
+  // XXX This needs to be changed so that the bulk of the code would reside within
+  // the model itself
+  io.on( 'move:milestone', ( ctx, data ) => {
+    if ( isAuthenticated(ctx) ) {
+      // XXX need to add checks and error handlers
+      // If parameters are passed, user belongs to the project and so on
+      co(function* () {
+        let userId = getAuthenticatedUserId(ctx);
+        let milestone =  yield Milestone.findOne({ _id: data._id }).exec();
+        let participant = yield Participant.findOne({ project: milestone.project, user: userId, status: 'active' }).exec();
+
+        if ( participant ) {
+          milestone.start = new Date(data.start);
+          milestone = yield milestone.save();
+        } else {
+          // TODO A better handling of everything is needed
+          throw new Error('Not a participant');
+        }
+
+        // TODO This needs way better error handling
+        return milestone;
+      }).then(function(milestone) {
+        app._io.in(milestone.project).emit('move:milestone', {
+          _id: milestone._id,
+          start: milestone.start
+        });
+      }, function(err) {
+        console.error(err);
+      });
+    }
+  });
+
   io.on( 'connection', ( ctx, data ) => {
     console.log( 'CONNECTION', data );
     // XXX This approach has to be checked
@@ -174,5 +207,18 @@ module.exports = function (app) {
   // XXX Not real annotation, just data with _id and project (identifiers)
   app.on('delete:annotation', function(annotation) {
     app._io.in(annotation.project).emit('delete:annotation', annotation);
+  });
+
+  app.on('create:milestone', function(milestone) {
+    app._io.in(milestone.project).emit('create:milestone', milestone);
+  });
+
+  app.on('update:milestone', function(milestone) {
+    app._io.in(milestone.project).emit('update:milestone', milestone);
+  });
+
+  // XXX Not real milestone, just data with _id and project (identifiers)
+  app.on('delete:milestone', function(milestone) {
+    app._io.in(milestone.project).emit('delete:milestone', milestone);
   });
 };
