@@ -485,10 +485,18 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
-    // XXX Need to make sure that annotation belongs to the project
-    // Provided project and annotation IDs might not match
     try {
       let annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+
+      if ( !annotation ) {
+        this.throw(404, 'not_found');
+        return;
+      }
+
+      if ( !annotation.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
 
       if ( this.request.body.title ) {
         annotation.title = this.request.body.title.trim();
@@ -511,29 +519,30 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(annotation);
     } catch(err) {
-      // TODO Need to add handing for NOT FOUND annotation
-      // Maybe some others
       console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
 
   projectRouter.delete('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
-    // XXX Need to make sure that annotation belongs to the project
-    // Provided project and annotation IDs might not match
     try {
-      yield Annotation.find({ _id: this.params.annotation }).remove().exec();
+      let annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
 
-      // XXX Need to load the annotation or just provide the fake object that looks like it
-      // Project identifier is required to transmit to some channel
-      this.emitApiAction('delete', 'annotation', {
-        _id: this.params.annotation,
-        project: this.params.project
-      });
+      if ( !annotation ) {
+        this.throw(404, 'not_found');
+        return;
+      }
 
-      this.apiRespond({
-        _id: this.params.annotation
-      });
+      if ( !annotation.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
+
+      yield annotation.remove().exec();
+
+      this.emitApiAction('delete', 'annotation', annotation);
+
+      this.apiRespond(annotation);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -586,10 +595,18 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
-    // XXX Need to make sure that milestone belongs to the project
-    // Provided project and milestone IDs might not match
     try {
       let milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+
+      if ( !milestone ) {
+        this.throw(404, 'not_found');
+        return;
+      }
+
+      if ( !milestone.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
 
       if ( this.request.body.title ) {
         milestone.title = this.request.body.title.trim();
@@ -615,29 +632,30 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(milestone);
     } catch(err) {
-      // TODO Need to add handing for NOT FOUND milestone
-      // Maybe some others
       console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });
 
   projectRouter.delete('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
-    // XXX Need to make sure that annotation belongs to the project
-    // Provided project and annotation IDs might not match
     try {
-      yield Milestone.find({ _id: this.params.milestone }).remove().exec();
+      let milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
 
-      // XXX Need to load the milestobe or just provide the fake object that looks like it
-      // Project identifier is required to transmit to some channel
-      this.emitApiAction('delete', 'milestone', {
-        _id: this.params.milestone,
-        project: this.params.project
-      });
+      if ( !milestone ) {
+        this.throw(404, 'not_found');
+        return;
+      }
 
-      this.apiRespond({
-        _id: this.params.milestone
-      });
+      if ( !milestone.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
+
+      yield milestone.remove().exec();
+
+      this.emitApiAction('delete', 'milestone', milestone);
+
+      this.apiRespond(milestone);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
