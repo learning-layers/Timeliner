@@ -20,7 +20,7 @@ function facebookMe(token) {
   };
 }
 
-function facebookFrields(token) {
+function facebookFriends(token) {
   return function(done) {
     facebook.query().get('/me/friends?fields=id,email,name,first_name,last_name,picture').auth(token).request(function(err, res, body) {
       // TODO Handle errors
@@ -72,7 +72,7 @@ function linkedinMe(token) {
 module.exports = {
   facebook: {
     me: facebookMe,
-    friends: facebookFrields
+    friends: facebookFriends
   },
   google: {
     me: googleMe,
