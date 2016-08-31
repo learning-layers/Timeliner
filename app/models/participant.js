@@ -47,6 +47,36 @@ participantSchema.statics.getUserProjects = function *(userId) {
   });
 };
 
+/**
+ * Returns active project participant for user, if exists.
+ * @param  {string}  projectId Project unique identifier
+ * @param  {string}  userId    User unique identifier
+ * @return {promise}           Resolves to Participant or null
+ */
+participantSchema.statics.getProjectActiveParticipant = function(projectId, userId) {
+  return Participant.findOne({ project: projectId, user: userId, status: 'active' }).exec();
+};
+
+/**
+ * Retuns pending project participant for user, if exsits.
+ * @param  {string} projectId Project unique identifier
+ * @param  {string} userId    User unique identifier
+ * @return {promise}          Resolves to participant or null
+ */
+participantSchema.statics.getProjectPendingParticipant = function(projectId, userId) {
+  return Participant.findOne({ project: projectId, user: userId, status: 'pending' }).exec();
+};
+
+/**
+ * Returns acrive or pending project participant, if exists.
+ * @param  {string} projectId Project unique identifier
+ * @param  {string} userId    User unique identifier
+ * @return {promise}          Resolves to participant or null
+ */
+participantSchema.statics.getProjectParticipant = function(projectId, userId) {
+  return Participant.findOne({ project: projectId, user: userId, status: { $in: ['pending', 'active'] } }).exec();
+};
+
 const Participant = mongoose.model('Participant', participantSchema);
 
 module.exports = Participant;

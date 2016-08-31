@@ -55,8 +55,9 @@ module.exports = function (app) {
   io.on('authenticate', ( ctx, data ) => {
     const socket = getRawSocket(ctx);
     try {
-      // TODO Make sure to either list socket as acceptable audience within the token
-      // or just use another token for socket authentication
+      // TODO Consider using different kind of token
+      // Another possibility would be to extend "audience" within the original
+      // token with addition of "socket" an not just "api"
       let decoded = auth.verifyAuthToken(data.token);
 
       setDecodedToken(ctx, decoded);
@@ -75,13 +76,28 @@ module.exports = function (app) {
     const socket = getRawSocket(ctx);
 
     if ( isAuthenticated(ctx) ) {
-      // TODO Need to check if user is part of the project
-      socket.join(data.id);
-      socket.emit('join', {
-        success: true
-      });
-      app._io.in(data.id).emit('join', {
-        user: getAuthenticatedUserId(ctx)
+      let userId = getAuthenticatedUserId(ctx);
+      let promise = Participant.getProjectActiveParticipant(data.id, userId);
+
+      promise.then(function(participant) {
+        if ( participant ) {
+          socket.join(data.id);
+          socket.emit('join', {
+            success: true
+          });
+          app._io.in(data.id).emit('join', {
+            user: userId
+          });
+        } else {
+          socket.emit('join', {
+            success: false
+          });
+        }
+      }).catch(function(err) {
+        console.error('Socket JOIN error', err);
+        socket.emit('join', {
+          success: false
+        });
       });
     } else {
       socket.emit('join', {
@@ -94,14 +110,25 @@ module.exports = function (app) {
     const socket = getRawSocket(ctx);
 
     if ( isAuthenticated(ctx) ) {
-      // TODO Need to check if user is part of the project
-      // TODO Need to check if socket is within the room
-      socket.leave(data.id);
-      socket.emit('leave', {
-        success: true
-      });
-      app._io.in(data.id).emit('leave', {
-        user: getAuthenticatedUserId(ctx)
+      let userId = getAuthenticatedUserId(ctx);
+      let promise = Participant.getProjectActiveParticipant(data.id, userId);
+
+      promise.then(function(participant) {
+        if ( participant ) {
+          socket.leave(data.id);
+          socket.emit('leave', {
+            success: true
+          });
+          app._io.in(data.id).emit('leave', {
+            user: userId
+          });
+        } else {
+          socket.emit('leave', {
+            success: false
+          });
+        }
+      }).catch(function(err) {
+        console.error('Socket LEAVE error', err);
       });
     } else {
       socket.emit('leave', {
@@ -119,14 +146,14 @@ module.exports = function (app) {
       co(function* () {
         let userId = getAuthenticatedUserId(ctx);
         let annotation =  yield Annotation.findOne({ _id: data._id }).exec();
-        let participant = yield Participant.findOne({ project: annotation.project, user: userId, status: 'active' }).exec();
+        let participant = Participant.getProjectActiveParticipant(annotation.project, userId);
 
         if ( participant ) {
           annotation.start = new Date(data.start);
           annotation = yield annotation.save();
         } else {
           // TODO A better handling of everything is needed
-          throw new Error('Not a participant');
+          throw new Error('Not an active participant.');
         }
 
         // TODO This needs way better error handling
@@ -137,6 +164,7 @@ module.exports = function (app) {
           start: annotation.start
         });
       }, function(err) {
+        // TODO Need to signal to the socket that movement failed
         console.error(err);
       });
     }
@@ -151,14 +179,14 @@ module.exports = function (app) {
       co(function* () {
         let userId = getAuthenticatedUserId(ctx);
         let milestone =  yield Milestone.findOne({ _id: data._id }).exec();
-        let participant = yield Participant.findOne({ project: milestone.project, user: userId, status: 'active' }).exec();
+        let participant = yield Participant.getProjectActiveParticipant(milestone.project, userId);
 
         if ( participant ) {
           milestone.start = new Date(data.start);
           milestone = yield milestone.save();
         } else {
           // TODO A better handling of everything is needed
-          throw new Error('Not a participant');
+          throw new Error('Not an active participant');
         }
 
         // TODO This needs way better error handling
@@ -169,6 +197,7 @@ module.exports = function (app) {
           start: milestone.start
         });
       }, function(err) {
+        // TODO Need to signal to the socket that movement failed
         console.error(err);
       });
     }
@@ -204,7 +233,6 @@ module.exports = function (app) {
     app._io.in(annotation.project).emit('update:annotation', annotation);
   });
 
-  // XXX Not real annotation, just data with _id and project (identifiers)
   app.on('delete:annotation', function(annotation) {
     app._io.in(annotation.project).emit('delete:annotation', annotation);
   });
@@ -217,7 +245,6 @@ module.exports = function (app) {
     app._io.in(milestone.project).emit('update:milestone', milestone);
   });
 
-  // XXX Not real milestone, just data with _id and project (identifiers)
   app.on('delete:milestone', function(milestone) {
     app._io.in(milestone.project).emit('delete:milestone', milestone);
   });

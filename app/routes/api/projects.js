@@ -67,7 +67,7 @@ module.exports = function (apiRouter) {
     let participant;
 
     try {
-      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: { $in: ['pending', 'active'] } }).exec();
+      participant = yield Participant.getProjectParticipant(this.params.project, this.user._id);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -86,7 +86,7 @@ module.exports = function (apiRouter) {
     let participant;
 
     try {
-      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'active' }).exec();
+      participant = yield Participant.getProjectActiveParticipant(this.params.project, this.user._id);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -105,7 +105,7 @@ module.exports = function (apiRouter) {
     let participant;
 
     try {
-      participant = yield Participant.findOne({ project: this.params.project, user: this.user._id, status: 'pending' }).exec();
+      participant = yield Participant.getProjectPendingParticipant(this.params.project, this.user._id);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
