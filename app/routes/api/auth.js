@@ -1,21 +1,21 @@
 "use strict";
 
-var Router = require('koa-router');
-var User = require('mongoose').model('User');
-var bodyParser = require('koa-body')();
-var crypto = require('crypto');
+const Router = require('koa-router');
+const User = require('mongoose').model('User');
+const bodyParser = require('koa-body')();
+const crypto = require('crypto');
 const auth = require(__dirname + '/../../auth');
 const reCaptcha = require(__dirname + '/../../reCaptcha')();
 
 module.exports = function (apiRouter, config) {
 
-  var authRouter = new Router({ prefix: '/auth' });
+  let authRouter = new Router({ prefix: '/auth' });
 
   authRouter.post('/register', bodyParser, function *(){
     try {
       yield reCaptcha.verify(this.request.body.captchaResponse, this.request.ip);
 
-      var user = new User({
+      let user = new User({
         email: this.request.body.email.toLowerCase(),
         confirmationKey: {
           key: generateConfirmationKey(),
@@ -31,9 +31,9 @@ module.exports = function (apiRouter, config) {
         key: user.confirmationKey.key
       });
     } catch (err) {
-      if(err.message == 'captcha_verification_invalid'){
+      if( err.message === 'captcha_verification_invalid' ) {
         this.throw(401, 'captcha_verification_invalid');
-      } else if(err.code == 11000){  // Mongo error code 11000 - duplicate key
+      } else if( err.code === 11000 ) {  // Mongo error code 11000 - duplicate key
         this.throw(409, 'email_already_registered');
       } else {
         console.error(err);
@@ -44,7 +44,7 @@ module.exports = function (apiRouter, config) {
 
   authRouter.get('/confirm/:key', function *(){
     try {
-      var user = yield User.findByConfirmationKey(this.params.key);
+      let user = yield User.findByConfirmationKey(this.params.key);
       this.apiRespond({
         email: user.email
       });
@@ -56,7 +56,7 @@ module.exports = function (apiRouter, config) {
 
   authRouter.post('/confirm', bodyParser, function *(){
     try {
-      var user = yield User.findByConfirmationKey(this.request.body.confirmationKey);
+      let user = yield User.findByConfirmationKey(this.request.body.confirmationKey);
       user.password = this.request.body.password;
       user.name.first = this.request.body.name.first;
       user.name.last = this.request.body.name.last;
@@ -81,7 +81,7 @@ module.exports = function (apiRouter, config) {
       this.throw(401, 'credentials_missing');
     } else {
       try {
-        var user = yield User.matchUser(this.request.body.email, this.request.body.password);
+        let user = yield User.matchUser(this.request.body.email, this.request.body.password);
         yield user.updateLastLogin();
         this.apiRespond({
           user: user,
@@ -96,7 +96,7 @@ module.exports = function (apiRouter, config) {
   });
 
   authRouter.post('/login/social', bodyParser, function *() {
-    let grantData, state;
+    let grantData;
 
     if ( !this.session.grant ) {
       this.throw(400, 'bad_request');
@@ -113,7 +113,7 @@ module.exports = function (apiRouter, config) {
     }
 
     try {
-      var user = yield User.findBySocialToken(grantData.provider, grantData.response.access_token);
+      let user = yield User.findBySocialToken(grantData.provider, grantData.response.access_token);
       yield user.updateLastLogin();
       this.apiRespond({
         user: user,
@@ -121,7 +121,7 @@ module.exports = function (apiRouter, config) {
       });
       this.session = null;
     } catch (err) {
-      console.log(err); // TODO Remove me
+      console.error(err); // TODO Remove me
       this.throw(401, 'authentication_failed');
     }
   });
