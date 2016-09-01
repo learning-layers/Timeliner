@@ -5,6 +5,7 @@ const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
 const Annotation = require('mongoose').model('Annotation');
 const Milestone = require('mongoose').model('Milestone');
+const Task = require('mongoose').model('Task');
 const bodyParser = require('koa-body')();
 const auth = require(__dirname + '/../../auth');
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -35,6 +36,11 @@ module.exports = function (apiRouter) {
   }];
 
   const milestonePopulateOptions = [{
+    path: 'creator',
+    model: 'User'
+  }];
+
+  const taskPopulateOptions = [{
     path: 'creator',
     model: 'User'
   }];
@@ -656,6 +662,126 @@ module.exports = function (apiRouter) {
       this.emitApiAction('delete', 'milestone', milestone);
 
       this.apiRespond(milestone);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.get('/:project/tasks', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      const tasks = yield Task.find({ project: this.params.project }).populate(taskPopulateOptions).exec();
+
+      this.apiRespond(tasks);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/tasks', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    if ( !(this.request.body.title && this.request.body.title.trim()) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    // XXX Need to make sure that either start and end are both present or none
+    // Need to make sure that start is less than end (maybe even chakc the difference being more than a day or two)
+
+    const title = this.request.body.title.trim();
+    const description = this.request.body.description;
+    const start = this.request.body.start ? new Date(this.request.body.start) : undefined;
+    const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
+
+    try {
+      let task = new Task({
+        title: title,
+        description: description,
+        start: start,
+        end: end,
+        creator: this.user._id,
+        project: this.params.project,
+      });
+
+      task = yield task.save();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('create', 'task', task);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'creation_failed');
+    }
+  });
+
+  projectRouter.put('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    try {
+      let task = yield Task.findOne({ _id: this.params.task }).exec();
+
+      if ( !task ) {
+        this.throw(404, 'not_found');
+        return;
+      }
+
+      if ( !task.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
+
+      if ( this.request.body.title ) {
+        task.title = this.request.body.title.trim();
+      } else {
+        this.throw(400, 'required_parameter_missing');
+        return;
+      }
+      if ( this.request.body.description !== undefined ) {
+        task.description = this.request.body.description;
+      }
+      // XXX Need to check that both are present and start is less than end
+      // Also what creation is currently missing
+      if ( this.request.body.start ) {
+        task.start = new Date(this.request.body.start);
+      }
+      if ( this.request.body.end ) {
+        task.end = new Date(this.request.body.end);
+      }
+
+      // TODO Check about connection to partticipant, resource and document
+
+      task = yield task.save();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.delete('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      let task = yield Task.findOne({ _id: this.params.task }).exec();
+
+      if ( !task ) {
+        this.throw(404, 'not_found');
+        return;
+      }
+
+      if ( !task.project.equals(this.params.project) ) {
+        this.throw(403, 'permission_error');
+        return;
+      }
+
+      yield task.remove().exec();
+
+      this.emitApiAction('delete', 'task', task);
+
+      this.apiRespond(task);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
