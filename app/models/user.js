@@ -27,8 +27,8 @@ let userSchema = new Schema({
     },
     lastLogin: Date,
     social: [{
-      provider: { type: String, unique: true, required: true },
-      id: { type: String, unique: true, required: true },
+      provider: { type: String, required: true },
+      id: { type: String, required: true },
       token: {
         value: { type: String, required: true },
         expires: { type: Date, required: true }

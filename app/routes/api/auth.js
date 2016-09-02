@@ -28,8 +28,10 @@ module.exports = function (apiRouter, config) {
 
       this.apiRespond(201, {
         email: user.email,
-        key: user.confirmationKey.key
       });
+
+      // TODO this should be sent by email
+      console.log('User registered, confirm link: confirm/' + user.confirmationKey.key);
     } catch (err) {
       if( err.message === 'captcha_verification_invalid' ) {
         this.throw(401, 'captcha_verification_invalid');
