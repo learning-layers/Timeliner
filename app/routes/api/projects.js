@@ -544,7 +544,7 @@ module.exports = function (apiRouter) {
         return;
       }
 
-      yield annotation.remove().exec();
+      yield annotation.remove();
 
       this.emitApiAction('delete', 'annotation', annotation);
 
@@ -657,7 +657,7 @@ module.exports = function (apiRouter) {
         return;
       }
 
-      yield milestone.remove().exec();
+      yield milestone.remove();
 
       this.emitApiAction('delete', 'milestone', milestone);
 
@@ -777,7 +777,7 @@ module.exports = function (apiRouter) {
         return;
       }
 
-      yield task.remove().exec();
+      yield task.remove();
 
       this.emitApiAction('delete', 'task', task);
 
