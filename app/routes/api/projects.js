@@ -693,6 +693,16 @@ module.exports = function (apiRouter) {
     const start = this.request.body.start ? new Date(this.request.body.start) : undefined;
     const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
 
+    if ( ( start && !end ) || ( !start && end ) ) {
+      this.throw(400, 'either_both_dates_or_none');
+      return;
+    }
+
+    if ( start && end && end < start ) {
+      this.throw(400, 'end_date_before_start');
+      return;
+    }
+
     try {
       let task = new Task({
         title: title,
@@ -739,16 +749,29 @@ module.exports = function (apiRouter) {
       if ( this.request.body.description !== undefined ) {
         task.description = this.request.body.description;
       }
-      // XXX Need to check that both are present and start is less than end
-      // Also what creation is currently missing
-      if ( this.request.body.start ) {
-        task.start = new Date(this.request.body.start);
-      }
-      if ( this.request.body.end ) {
-        task.end = new Date(this.request.body.end);
+
+      const start = this.request.body.start ? new Date(this.request.body.start) : undefined;
+      const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
+
+      if ( ( start && !end ) || ( !start && end ) ) {
+        this.throw(400, 'either_both_dates_or_none');
+        return;
       }
 
-      // TODO Check about connection to partticipant, resource and document
+      if ( start && end && end < start ) {
+        this.throw(400, 'end_date_before_start');
+        return;
+      }
+
+      if ( start && end ) {
+        task.start = start;
+        task.end = end;
+      } else if ( start === undefined && end === undefined && task.start && task.end ) {
+        task.start = start;
+        task.end = end;
+      }
+
+      // TODO Check about connection to participant, resource and document
 
       task = yield task.save();
 
