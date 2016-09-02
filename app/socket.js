@@ -11,6 +11,7 @@ const co = require('co');
 const Participant = require('mongoose').model('Participant');
 const Annotation = require('mongoose').model('Annotation');
 const Milestone = require('mongoose').model('Milestone');
+const Task = require('mongoose').model('Task');
 
 module.exports = function (app) {
   function getRawSocket(ctx) {
@@ -203,6 +204,41 @@ module.exports = function (app) {
     }
   });
 
+  // XXX This needs to be changed so that the bulk of the code would reside within
+  // the model itself
+  io.on( 'move:task', ( ctx, data ) => {
+    if ( isAuthenticated(ctx) ) {
+      // XXX need to add checks and error handlers
+      // If parameters are passed, user belongs to the project and so on
+      co(function* () {
+        let userId = getAuthenticatedUserId(ctx);
+        let task =  yield Task.findOne({ _id: data._id }).exec();
+        let participant = yield Participant.getProjectActiveParticipant(task.project, userId);
+
+        if ( participant ) {
+          task.start = new Date(data.start);
+          task.end = new Date(data.end);
+          task = yield task.save();
+        } else {
+          // TODO A better handling of everything is needed
+          throw new Error('Not an active participant');
+        }
+
+        // TODO This needs way better error handling
+        return task;
+      }).then(function(task) {
+        app._io.in(task.project).emit('move:task', {
+          _id: task._id,
+          start: task.start,
+          end: task.end
+        });
+      }, function(err) {
+        // TODO Need to signal to the socket that movement failed
+        console.error(err);
+      });
+    }
+  });
+
   io.on( 'connection', ( ctx, data ) => {
     console.log( 'CONNECTION', data );
     // XXX This approach has to be checked
@@ -247,5 +283,17 @@ module.exports = function (app) {
 
   app.on('delete:milestone', function(milestone) {
     app._io.in(milestone.project).emit('delete:milestone', milestone);
+  });
+
+  app.on('create:task', function(task) {
+    app._io.in(task.project).emit('create:task', task);
+  });
+
+  app.on('update:task', function(task) {
+    app._io.in(task.project).emit('update:task', task);
+  });
+
+  app.on('delete:task', function(task) {
+    app._io.in(task.project).emit('delete:task', task);
   });
 };
