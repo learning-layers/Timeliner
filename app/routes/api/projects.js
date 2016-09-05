@@ -164,6 +164,7 @@ module.exports = function (apiRouter) {
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
+      return;
     }
 
     if ( !project ) {
@@ -224,46 +225,57 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
-    try {
-      let project = yield Project.findOne({ _id: this.params.project }).exec();
+    let project;
 
-      if ( this.request.body.title ) {
-        project.title = this.request.body.title.trim();
-      } else {
-        this.throw(400, 'required_parameter_missing');
+    try {
+      project = yield Project.findOne({ _id: this.params.project }).exec();
+    } catch(err) {
+      console.error(err);
+      this.thow(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !project ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( this.request.body.title ) {
+      project.title = this.request.body.title.trim();
+    } else {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.description !== undefined ) {
+      project.description = this.request.body.description;
+    }
+    if ( this.request.body.goal !== undefined ) {
+      project.goal = this.request.body.goal;
+    }
+    if ( this.request.body.status ) {
+      if ( !project.owner.equals(this.user._id) ) {
+        this.throw(403, 'status_change_by_not_owner');
         return;
       }
-      if ( this.request.body.description !== undefined ) {
-        project.description = this.request.body.description;
+      project.status = this.request.body.status;
+    }
+    if ( this.request.body.end ) {
+      if ( this.request.body.end && this.request.body.end < project.start ) {
+        this.throw(400, 'end_date_before_start');
+        return;
       }
-      if ( this.request.body.goal !== undefined ) {
-        project.goal = this.request.body.goal;
-      }
-      if ( this.request.body.status ) {
-        if ( !project.owner.equals(this.user._id) ) {
-          this.throw(403, 'status_change_by_not_owner');
-          return;
-        }
-        project.status = this.request.body.status;
-      }
-      if ( this.request.body.end ) {
-        if ( this.request.body.end && this.request.body.end < project.start ) {
-          this.throw(400, 'end_date_before_start');
-          return;
-        }
-        project.end = new Date(this.request.body.end);
-      } else if ( project.end ) {
-        project.end = undefined;
-      }
+      project.end = new Date(this.request.body.end);
+    } else if ( project.end ) {
+      project.end = undefined;
+    }
 
+    try {
       project = yield project.save();
 
       project = yield Project.populate(project, projectPopulateOptions);
 
       this.apiRespond(project);
     } catch(err) {
-      // TODO Need to add handing for NOT FOUND project
-      // Maybe some others
       console.error(err);
       this.throw(500, 'internal_server_error');
     }
@@ -397,10 +409,12 @@ module.exports = function (apiRouter) {
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
+      return;
     }
 
     if ( !participant ) {
       this.throw(404, 'not_a_project_participant');
+      return;
     }
 
     try {
@@ -412,6 +426,7 @@ module.exports = function (apiRouter) {
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
+      return;
     }
 
     this.apiRespond({
@@ -491,32 +506,40 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    let annotation;
+
     try {
-      let annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+      annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( !annotation ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !annotation ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !annotation.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !annotation.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
-      if ( this.request.body.title ) {
-        annotation.title = this.request.body.title.trim();
-      } else {
-        this.throw(400, 'required_parameter_missing');
-        return;
-      }
-      if ( this.request.body.description !== undefined ) {
-        annotation.description = this.request.body.description;
-      }
-      if ( this.request.body.start ) {
-        annotation.start = new Date(this.request.body.start);
-      }
+    if ( this.request.body.title ) {
+      annotation.title = this.request.body.title.trim();
+    } else {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.description !== undefined ) {
+      annotation.description = this.request.body.description;
+    }
+    if ( this.request.body.start ) {
+      annotation.start = new Date(this.request.body.start);
+    }
 
+    try {
       annotation = yield annotation.save();
 
       annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
@@ -531,19 +554,26 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.delete('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    let annotation;
+
     try {
-      let annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+      annotation = yield Annotation.findOne({ _id: this.params.annotation }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
 
-      if ( !annotation ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !annotation ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !annotation.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !annotation.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
+    try {
       yield annotation.remove();
 
       this.emitApiAction('delete', 'annotation', annotation);
@@ -601,35 +631,43 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    let milestone;
+
     try {
-      let milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+      milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( !milestone ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !milestone ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !milestone.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !milestone.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
-      if ( this.request.body.title ) {
-        milestone.title = this.request.body.title.trim();
-      } else {
-        this.throw(400, 'required_parameter_missing');
-        return;
-      }
-      if ( this.request.body.description !== undefined ) {
-        milestone.description = this.request.body.description;
-      }
-      if ( this.request.body.start ) {
-        milestone.start = new Date(this.request.body.start);
-      }
-      if ( this.request.body.color ) {
-        milestone.color = this.request.body.color;
-      }
+    if ( this.request.body.title ) {
+      milestone.title = this.request.body.title.trim();
+    } else {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.description !== undefined ) {
+      milestone.description = this.request.body.description;
+    }
+    if ( this.request.body.start ) {
+      milestone.start = new Date(this.request.body.start);
+    }
+    if ( this.request.body.color ) {
+      milestone.color = this.request.body.color;
+    }
 
+    try {
       milestone = yield milestone.save();
 
       milestone = yield Milestone.populate(milestone, milestonePopulateOptions);
@@ -644,19 +682,27 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.delete('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    let milestone;
+
     try {
-      let milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+      milestone = yield Milestone.findOne({ _id: this.params.milestone }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( !milestone ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !milestone ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !milestone.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !milestone.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
+    try {
       yield milestone.remove();
 
       this.emitApiAction('delete', 'milestone', milestone);
@@ -684,9 +730,6 @@ module.exports = function (apiRouter) {
       this.throw(400, 'required_parameter_missing');
       return;
     }
-
-    // XXX Need to make sure that either start and end are both present or none
-    // Need to make sure that start is less than end (maybe even chakc the difference being more than a day or two)
 
     const title = this.request.body.title.trim();
     const description = this.request.body.description;
@@ -727,52 +770,59 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.put('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    let task;
+
     try {
-      let task = yield Task.findOne({ _id: this.params.task }).exec();
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( !task ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !task.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
-      if ( this.request.body.title ) {
-        task.title = this.request.body.title.trim();
-      } else {
-        this.throw(400, 'required_parameter_missing');
-        return;
-      }
-      if ( this.request.body.description !== undefined ) {
-        task.description = this.request.body.description;
-      }
+    if ( this.request.body.title ) {
+      task.title = this.request.body.title.trim();
+    } else {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.description !== undefined ) {
+      task.description = this.request.body.description;
+    }
 
-      const start = this.request.body.start ? new Date(this.request.body.start) : undefined;
-      const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
+    const start = this.request.body.start ? new Date(this.request.body.start) : undefined;
+    const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
 
-      if ( ( start && !end ) || ( !start && end ) ) {
-        this.throw(400, 'either_both_dates_or_none');
-        return;
-      }
+    if ( ( start && !end ) || ( !start && end ) ) {
+      this.throw(400, 'either_both_dates_or_none');
+      return;
+    }
 
-      if ( start && end && end < start ) {
-        this.throw(400, 'end_date_before_start');
-        return;
-      }
+    if ( start && end && end < start ) {
+      this.throw(400, 'end_date_before_start');
+      return;
+    }
 
-      if ( start && end ) {
-        task.start = start;
-        task.end = end;
-      } else if ( start === undefined && end === undefined && task.start && task.end ) {
-        task.start = start;
-        task.end = end;
-      }
+    if ( start && end ) {
+      task.start = start;
+      task.end = end;
+    } else if ( start === undefined && end === undefined && task.start && task.end ) {
+      task.start = start;
+      task.end = end;
+    }
 
-      // TODO Check about connection to participant, resource and document
-
+    // TODO Check about connection to participant, resource and document
+    try {
       task = yield task.save();
 
       task = yield Task.populate(task, taskPopulateOptions);
@@ -787,19 +837,27 @@ module.exports = function (apiRouter) {
   });
 
   projectRouter.delete('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    let task;
+
     try {
-      let task = yield Task.findOne({ _id: this.params.task }).exec();
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
 
-      if ( !task ) {
-        this.throw(404, 'not_found');
-        return;
-      }
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
 
-      if ( !task.project.equals(this.params.project) ) {
-        this.throw(403, 'permission_error');
-        return;
-      }
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
 
+    try {
       yield task.remove();
 
       this.emitApiAction('delete', 'task', task);
