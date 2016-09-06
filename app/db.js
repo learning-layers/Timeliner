@@ -3,8 +3,7 @@
 const mongoose = require('mongoose');
 
 module.exports = function(appConfig) {
-  // TODO Consider replacing this with Bluebird
-  mongoose.Promise = global.Promise;
+  mongoose.Promise = require('bluebird');
 
   mongoose.connect(appConfig.app.db.uri, appConfig.app.db.options);
   mongoose.connection.on('error', function(err) {
