@@ -296,4 +296,16 @@ module.exports = function (app) {
   app.on('delete:task', function(task) {
     app._io.in(task.project).emit('delete:task', task);
   });
+
+  app.on('create:resource', function(resource) {
+    app._io.in(resource.project).emit('create:resource', resource);
+  });
+
+  app.on('update:resource', function(resource) {
+    app._io.in(resource.project).emit('update:resource', resource);
+  });
+
+  app.on('delete:resource', function(resource) {
+    app._io.in(resource.project).emit('delete:resource', resource);
+  });
 };

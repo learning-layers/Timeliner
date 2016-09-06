@@ -7,7 +7,7 @@ const crypto = require('crypto');
 const auth = require(__dirname + '/../../auth');
 const reCaptcha = require(__dirname + '/../../reCaptcha')();
 
-module.exports = function (apiRouter, config) {
+module.exports = function (apiRouter) {
 
   let authRouter = new Router({ prefix: '/auth' });
 

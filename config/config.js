@@ -9,6 +9,10 @@ module.exports = {
       uri: 'mongodb://localhost/timeliner',
       options: {}
     },
+    fs: {
+      uploadDir: '',
+      storageDir: ''
+    },
     mail: {
       from: '"Timeliner" <no-reply@timeliner.me>',
       subject: 'Timeliner automatic email message',

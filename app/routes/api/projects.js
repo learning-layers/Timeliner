@@ -6,11 +6,24 @@ const Participant = require('mongoose').model('Participant');
 const Annotation = require('mongoose').model('Annotation');
 const Milestone = require('mongoose').model('Milestone');
 const Task = require('mongoose').model('Task');
+const Resource = require('mongoose').model('Resource');
 const bodyParser = require('koa-body')();
 const auth = require(__dirname + '/../../auth');
 const ObjectId = require('mongoose').Types.ObjectId;
+const BBPromise = require("bluebird");
+const fse = require('fs-extra');
+const moveFile = BBPromise.promisify(fse.move);
+const removeFile = BBPromise.promisify(fse.remove);
 
-module.exports = function (apiRouter) {
+module.exports = function (apiRouter, config) {
+  const bodyParserUpload = require('koa-body')({
+    multipart: true,
+    formidable: {
+      multiples: false,
+      uploadDir: config.app.fs.uploadDir
+    }
+  });
+
   // TODO Needs a bit more control over what kind of data is populated
   // Full user objects might not be needed. It could be enough to get:
   // _id, name and email (not sure of last one is really needed here)
@@ -41,6 +54,11 @@ module.exports = function (apiRouter) {
   }];
 
   const taskPopulateOptions = [{
+    path: 'creator',
+    model: 'User'
+  }];
+
+  const resourcePopulateOptions = [{
     path: 'creator',
     model: 'User'
   }];
@@ -863,6 +881,161 @@ module.exports = function (apiRouter) {
       this.emitApiAction('delete', 'task', task);
 
       this.apiRespond(task);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.get('/:project/resources', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    try {
+      const resources = yield Resource.find({ project: this.params.project }).populate(resourcePopulateOptions).exec();
+
+      this.apiRespond(resources);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/resources', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParserUpload, function *() {
+    if ( !(this.request.body.fields.title && this.request.body.fields.title.trim()) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    const title = this.request.body.fields.title.trim();
+    const description = this.request.body.fields.description;
+    const url = this.request.body.fields.url ? this.request.body.fields.url : undefined;
+    let file;
+
+    // XXX Need to make sure that either URL or file is provided
+    // XXX Both are not allowed
+    if ( this.request.body.files.file ) {
+      file = {
+        size: this.request.body.files.file.size,
+        name: this.request.body.files.file.name,
+        type: this.request.body.files.file.type
+      };
+    } else {
+      file = undefined;
+    }
+
+    try {
+      let resource = new Resource({
+        title: title,
+        description: description,
+        url: url,
+        file: file,
+        creator: this.user._id,
+        project: this.params.project,
+      });
+
+      resource = yield resource.save();
+
+      resource = yield Resource.populate(resource, resourcePopulateOptions);
+
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors and probably remove the task that has just been created
+        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + resource._id);
+      }
+
+      this.emitApiAction('create', 'resource', resource);
+
+      this.apiRespond(resource);
+    } catch(err) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors
+        // Probably just catch any and send those to logger/debudder
+        yield removeFile(this.request.body.files.file.path);
+      }
+      console.error(err);
+      this.throw(500, 'creation_failed');
+    }
+  });
+
+  projectRouter.put('/:project/resources/:resource', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+    let resource;
+
+    try {
+      resource = yield Resource.findOne({ _id: this.params.resource }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !resource ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !resource.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    if ( this.request.body.title ) {
+      resource.title = this.request.body.title.trim();
+    } else {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.description !== undefined ) {
+      resource.description = this.request.body.description;
+    }
+
+    try {
+      resource = yield resource.save();
+
+      resource = yield Resource.populate(resource, resourcePopulateOptions);
+
+      this.emitApiAction('update', 'resource', resource);
+
+      this.apiRespond(resource);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.delete('/:project/resources/:resource', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+    let resource;
+
+    try {
+      resource = yield Resource.findOne({ _id: this.params.resource }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !resource ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !resource.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      yield resource.remove();
+
+      if ( resource.file ) {
+        // XXX Needs better handling and storage of message
+        try {
+          yield removeFile(config.app.fs.storageDir + '/' + resource.getFilePath());
+        } catch(err) {
+          console.error('Could not remove file for resource at location: ' + ( config.app.fs.storageDir + '/' + resource.getFilePath() ), err);
+        }
+      }
+
+      this.emitApiAction('delete', 'resource', resource);
+
+      this.apiRespond(resource);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
