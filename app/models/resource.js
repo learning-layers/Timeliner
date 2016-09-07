@@ -42,8 +42,8 @@ resourceSchema.methods.getFilePath = function () {
   return this.project.toString() + '/' + this._id.toString();
 };
 
-resourceSchema.statics.createFilePathMatrix = function(projectId, fileName) {
-  return projectId.toString() + '/' + fileName.toString();
+resourceSchema.statics.createFilePathMatrix = function(projectId, resoueceId) {
+  return projectId.toString() + '/' + resoueceId.toString();
 };
 
 const Resource = mongoose.model('Resource', resourceSchema);

@@ -8,7 +8,8 @@ const Milestone = require('mongoose').model('Milestone');
 const Task = require('mongoose').model('Task');
 const Resource = require('mongoose').model('Resource');
 const bodyParser = require('koa-body')();
-const auth = require(__dirname + '/../../auth');
+const Auth = require(__dirname + '/../../auth');
+const Middleware = require(__dirname + '/../../lib/middleware');
 const ObjectId = require('mongoose').Types.ObjectId;
 const BBPromise = require("bluebird");
 const fse = require('fs-extra');
@@ -63,90 +64,9 @@ module.exports = function (apiRouter, config) {
     model: 'User'
   }];
 
-  const ensureProjectOwner = function *(next) {
-    let project;
-
-    try {
-      project = Project.findOne({ _id: this.params.project }).exec();
-    } catch (err) {
-      console.error(err);
-      this.throw(500, 'internal_server_error');
-      return;
-    }
-
-    if ( !project ) {
-      this.throw(404, 'not_found');
-      return;
-    }
-
-    if ( project.owner !== this.user._id ) {
-      this.throw(403, 'not_a_project_owner');
-      return;
-    }
-
-    return yield next;
-  };
-
-  const ensureProjectAccessRight = function *(next) {
-    let participant;
-
-    try {
-      participant = yield Participant.getProjectParticipant(this.params.project, this.user._id);
-    } catch (err) {
-      console.error(err);
-      this.throw(500, 'internal_server_error');
-      return;
-    }
-
-    if ( !participant ) {
-      this.throw(403, 'not_a_project_participant');
-      return;
-    }
-
-    return yield next;
-  };
-
-  const ensureActiveProjectParticipant = function *(next) {
-    let participant;
-
-    try {
-      participant = yield Participant.getProjectActiveParticipant(this.params.project, this.user._id);
-    } catch (err) {
-      console.error(err);
-      this.throw(500, 'internal_server_error');
-      return;
-    }
-
-    if ( !participant ) {
-      this.throw(403, 'not_a_project_participant');
-      return;
-    }
-
-    return yield next;
-  };
-
-  const ensurePendingProjectParticipant = function *(next) {
-    let participant;
-
-    try {
-      participant = yield Participant.getProjectPendingParticipant(this.params.project, this.user._id);
-    } catch (err) {
-      console.error(err);
-      this.throw(500, 'internal_server_error');
-      return;
-    }
-
-    if ( !participant ){
-      this.throw(403, 'not_a_project_participant');
-      return;
-    }
-
-    return yield next;
-  };
-
   const projectRouter = new Router({ prefix: '/projects' });
 
-  projectRouter.get('/', auth.ensureAuthenticated, auth.ensureUser, auth.ensureAdmin, function *() {
+  projectRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Auth.ensureAdmin, function *() {
     try {
       const projects = yield Project.find({}).populate(projectPopulateOptions).exec();
 
@@ -157,7 +77,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/mine', auth.ensureAuthenticated, auth.ensureUser, function *() {
+  projectRouter.get('/mine', Auth.ensureAuthenticated, Auth.ensureUser, function *() {
     try {
       const ids = yield Participant.getUserProjects(this.user._id);
       // TODO Needs a bit more control over what kind of data is populated
@@ -172,7 +92,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/:project/', auth.ensureAuthenticated, auth.ensureUser, ensureProjectAccessRight, function *() {
+  projectRouter.get('/:project/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     let project;
 
     try {
@@ -190,7 +110,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/', auth.ensureAuthenticated, auth.ensureUser, bodyParser, function *() {
+  projectRouter.post('/', Auth.ensureAuthenticated, Auth.ensureUser, bodyParser, function *() {
     if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start) ) {
       this.throw(400, 'required_parameter_missing');
       return;
@@ -242,7 +162,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.put('/:project', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     let project;
 
     try {
@@ -299,7 +219,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.delete('/:project', auth.ensureAuthenticated, auth.ensureUser, ensureProjectOwner, function *() {
+  projectRouter.delete('/:project', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectOwner, function *() {
     try {
       // TODO Need to see what happes if one of the queries fails
       // This would leave the system in a bad state
@@ -316,7 +236,7 @@ module.exports = function (apiRouter, config) {
   });
 
   // TODO Consider moving these functionalities into standalone Router
-  projectRouter.post('/:project/participants/invite/:user', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/invite/:user', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     // TODO Make sure that user parameter exists and is a user
     try {
       let participant = new Participant({
@@ -345,7 +265,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/participants/leave', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/leave', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let project;
 
     try {
@@ -378,7 +298,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/participants/accept', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/accept', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensurePendingProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }).exec();
 
@@ -392,7 +312,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/participants/reject', auth.ensureAuthenticated, auth.ensureUser, ensurePendingProjectParticipant, function *() {
+  projectRouter.post('/:project/participants/reject', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensurePendingProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }).exec();
 
@@ -406,7 +326,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/participants/remove/:user', auth.ensureAuthenticated, auth.ensureUser, ensureProjectOwner, function *() {
+  projectRouter.post('/:project/participants/remove/:user', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectOwner, function *() {
     let project, participant;
 
     try {
@@ -452,7 +372,7 @@ module.exports = function (apiRouter, config) {
     });
   });
 
-  projectRouter.post('/:project/timeline/hide', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/timeline/hide', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: false }).exec();
 
@@ -466,7 +386,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/timeline/show', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/timeline/show', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: true }).exec();
 
@@ -480,7 +400,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/:project/annotations', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.get('/:project/annotations', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       const annotations = yield Annotation.find({ project: this.params.project }).populate(annotationPopulateOptions).exec();
 
@@ -491,7 +411,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/annotations', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.post('/:project/annotations', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start) ) {
       this.throw(400, 'required_parameter_missing');
       return;
@@ -523,7 +443,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.put('/:project/annotations/:annotation', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     let annotation;
 
     try {
@@ -571,7 +491,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.delete('/:project/annotations/:annotation', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.delete('/:project/annotations/:annotation', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let annotation;
 
     try {
@@ -603,7 +523,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/:project/milestones', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.get('/:project/milestones', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       const milestones = yield Milestone.find({ project: this.params.project }).populate(milestonePopulateOptions).exec();
 
@@ -614,7 +534,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/milestones', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.post('/:project/milestones', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     if ( !(this.request.body.title && this.request.body.title.trim() && this.request.body.start && this.request.body.color) ) {
       this.throw(400, 'required_parameter_missing');
       return;
@@ -648,7 +568,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.put('/:project/milestones/:milestone', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     let milestone;
 
     try {
@@ -699,7 +619,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.delete('/:project/milestones/:milestone', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.delete('/:project/milestones/:milestone', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let milestone;
 
     try {
@@ -732,7 +652,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/:project/tasks', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.get('/:project/tasks', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       const tasks = yield Task.find({ project: this.params.project }).populate(taskPopulateOptions).exec();
 
@@ -743,7 +663,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/tasks', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.post('/:project/tasks', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     if ( !(this.request.body.title && this.request.body.title.trim()) ) {
       this.throw(400, 'required_parameter_missing');
       return;
@@ -787,7 +707,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.put('/:project/tasks/:task', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     let task;
 
     try {
@@ -854,7 +774,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.delete('/:project/tasks/:task', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.delete('/:project/tasks/:task', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let task;
 
     try {
@@ -887,7 +807,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.get('/:project/resources', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.get('/:project/resources', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
       const resources = yield Resource.find({ project: this.params.project }).populate(resourcePopulateOptions).exec();
 
@@ -898,7 +818,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/resources', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParserUpload, function *() {
+  projectRouter.post('/:project/resources', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
     if ( !(this.request.body.fields.title && this.request.body.fields.title.trim()) ) {
       this.throw(400, 'required_parameter_missing');
       return;
@@ -937,7 +857,7 @@ module.exports = function (apiRouter, config) {
 
       if ( this.request.body.files.file ) {
         // XXX Need to handle errors and probably remove the task that has just been created
-        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + resource._id);
+        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
       }
 
       this.emitApiAction('create', 'resource', resource);
@@ -955,7 +875,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project/resources/:resource', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, bodyParser, function *() {
+  projectRouter.put('/:project/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
     let resource;
 
     try {
@@ -1000,7 +920,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.delete('/:project/resources/:resource', auth.ensureAuthenticated, auth.ensureUser, ensureActiveProjectParticipant, function *() {
+  projectRouter.delete('/:project/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let resource;
 
     try {
