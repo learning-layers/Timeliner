@@ -263,6 +263,4 @@ module.exports = function (app, config) {
 
   app.use(authRouter.routes());
   app.use(authRouter.allowedMethods());
-
-  require(__dirname + '/api')(app, config);
 };
