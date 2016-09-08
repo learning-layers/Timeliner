@@ -829,8 +829,6 @@ module.exports = function (apiRouter, config) {
     const url = this.request.body.fields.url ? this.request.body.fields.url : undefined;
     let file;
 
-    // XXX Need to make sure that either URL or file is provided
-    // XXX Both are not allowed
     if ( this.request.body.files.file ) {
       file = {
         size: this.request.body.files.file.size,
@@ -839,6 +837,20 @@ module.exports = function (apiRouter, config) {
       };
     } else {
       file = undefined;
+    }
+
+    if ( url && file ) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors
+        // Probably just catch any and send those to logger/debudder
+        yield removeFile(this.request.body.files.file.path);
+      }
+      this.throw(400, 'either_url_or_file_not_both');
+      return;
+    } else if ( !( url || file ) ) {
+      this.throw(400, 'no_url_or_file_provided');
+      return;
     }
 
     try {
