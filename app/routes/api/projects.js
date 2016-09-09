@@ -887,8 +887,8 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.put('/:project/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
-    let resource;
+  projectRouter.put('/:project/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
+    let resource, hasFile;
 
     try {
       resource = yield Resource.findOne({ _id: this.params.resource }).exec();
@@ -908,14 +908,52 @@ module.exports = function (apiRouter, config) {
       return;
     }
 
-    if ( this.request.body.title ) {
-      resource.title = this.request.body.title.trim();
+    if ( this.request.body.fields.url && this.request.body.files.file ) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors
+        // Probably just catch any and send those to logger/debudder
+        yield removeFile(this.request.body.files.file.path);
+      }
+      this.throw(400, 'either_url_or_file_not_both');
+      return;
+    } else if ( !( this.request.body.fields.url || this.request.body.files.file ) ) {
+      this.throw(400, 'no_url_or_file_provided');
+      return;
+    }
+
+    hasFile = resource.file ? true : false;
+
+    if ( this.request.body.fields.title ) {
+      resource.title = this.request.body.fields.title.trim();
     } else {
       this.throw(400, 'required_parameter_missing');
       return;
     }
-    if ( this.request.body.description !== undefined ) {
-      resource.description = this.request.body.description;
+    if ( this.request.body.fields.description !== undefined ) {
+      resource.description = this.request.body.fields.description;
+    }
+
+    if ( this.request.body.fields.url ) {
+      resource.url = this.request.body.fields.url;
+
+      // Remove file data from resource body, if required
+      if ( hasFile ) {
+        resource.file = undefined;
+      }
+    }
+
+    if ( this.request.body.files.file ) {
+      resource.file = {
+        size: this.request.body.files.file.size,
+        name: this.request.body.files.file.name,
+        type: this.request.body.files.file.type
+      };
+
+      // Remove url data from resource body, if required
+      if ( !hasFile ) {
+        resource.url = undefined;
+      }
     }
 
     try {
@@ -923,10 +961,29 @@ module.exports = function (apiRouter, config) {
 
       resource = yield Resource.populate(resource, resourcePopulateOptions);
 
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors and probably remove the task that has just been created
+        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id), {
+          clobber: true
+        });
+      }
+
+      if ( hasFile && !resource.file ) {
+        // XXX Need to handle errors
+        // Probably just catch any and send those to logger/debudder
+        yield removeFile(config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
+      }
+
       this.emitApiAction('update', 'resource', resource);
 
       this.apiRespond(resource);
     } catch(err) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        // XXX Need to handle errors
+        // Probably just catch any and send those to logger/debudder
+        yield removeFile(this.request.body.files.file.path);
+      }
       console.error(err);
       this.throw(500, 'internal_server_error');
     }
