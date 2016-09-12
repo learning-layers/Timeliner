@@ -813,7 +813,7 @@ module.exports = function (apiRouter, config) {
 
       this.apiRespond(resources);
     } catch (err) {
-      console.error(err);
+      console.error('Getting resource list failed', err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -842,9 +842,11 @@ module.exports = function (apiRouter, config) {
     if ( url && file ) {
       // Clean-up the uploaded file in case something fails
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors
-        // Probably just catch any and send those to logger/debudder
-        yield removeFile(this.request.body.files.file.path);
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded resource file failed', err);
+        }
       }
       this.throw(400, 'either_url_or_file_not_both');
       return;
@@ -868,8 +870,11 @@ module.exports = function (apiRouter, config) {
       resource = yield Resource.populate(resource, resourcePopulateOptions);
 
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors and probably remove the task that has just been created
-        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
+        try {
+          yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
+        } catch (err) {
+          console.error('Moving of uploaded resource file failed', err);
+        }
       }
 
       this.emitApiAction('create', 'resource', resource);
@@ -878,11 +883,13 @@ module.exports = function (apiRouter, config) {
     } catch(err) {
       // Clean-up the uploaded file in case something fails
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors
-        // Probably just catch any and send those to logger/debudder
-        yield removeFile(this.request.body.files.file.path);
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded resource file failed', err);
+        }
       }
-      console.error(err);
+      console.error('Resource creation failed', err);
       this.throw(500, 'creation_failed');
     }
   });
@@ -911,9 +918,11 @@ module.exports = function (apiRouter, config) {
     if ( this.request.body.fields.url && this.request.body.files.file ) {
       // Clean-up the uploaded file in case something fails
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors
-        // Probably just catch any and send those to logger/debudder
-        yield removeFile(this.request.body.files.file.path);
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded resource file failed', err);
+        }
       }
       this.throw(400, 'either_url_or_file_not_both');
       return;
@@ -962,16 +971,22 @@ module.exports = function (apiRouter, config) {
       resource = yield Resource.populate(resource, resourcePopulateOptions);
 
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors and probably remove the task that has just been created
-        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id), {
-          clobber: true
-        });
+        try {
+          // Move new file in, rewriting previous one; see the clobber option
+          yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id), {
+            clobber: true
+          });
+        } catch (err) {
+          console.error('Moving new uploaded resource file failed', err);
+        }
       }
 
       if ( hasFile && !resource.file ) {
-        // XXX Need to handle errors
-        // Probably just catch any and send those to logger/debudder
-        yield removeFile(config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
+        try {
+          yield removeFile(config.app.fs.storageDir + '/' + Resource.createFilePathMatrix(resource.project, resource._id));
+        } catch (err) {
+          console.error('Removal of exisring resource file failed', err);
+        }
       }
 
       this.emitApiAction('update', 'resource', resource);
@@ -980,11 +995,13 @@ module.exports = function (apiRouter, config) {
     } catch(err) {
       // Clean-up the uploaded file in case something fails
       if ( this.request.body.files.file ) {
-        // XXX Need to handle errors
-        // Probably just catch any and send those to logger/debudder
-        yield removeFile(this.request.body.files.file.path);
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded resource file failed', err);
+        }
       }
-      console.error(err);
+      console.error('Resource update failed', err);
       this.throw(500, 'internal_server_error');
     }
   });
@@ -1014,11 +1031,10 @@ module.exports = function (apiRouter, config) {
       yield resource.remove();
 
       if ( resource.file ) {
-        // XXX Needs better handling and storage of message
         try {
           yield removeFile(config.app.fs.storageDir + '/' + resource.getFilePath());
         } catch(err) {
-          console.error('Could not remove file for resource at location: ' + ( config.app.fs.storageDir + '/' + resource.getFilePath() ), err);
+          console.error('Removal of existing resource file failed', err);
         }
       }
 
@@ -1026,7 +1042,7 @@ module.exports = function (apiRouter, config) {
 
       this.apiRespond(resource);
     } catch (err) {
-      console.error(err);
+      console.error('Resource removal failed', err);
       this.throw(500, 'internal_server_error');
     }
   });
