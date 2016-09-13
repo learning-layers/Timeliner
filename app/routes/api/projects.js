@@ -7,6 +7,7 @@ const Annotation = require('mongoose').model('Annotation');
 const Milestone = require('mongoose').model('Milestone');
 const Task = require('mongoose').model('Task');
 const Resource = require('mongoose').model('Resource');
+const Outcome = require('mongoose').model('Outcome');
 const bodyParser = require('koa-body')();
 const Auth = require(__dirname + '/../../auth');
 const Middleware = require(__dirname + '/../../lib/middleware');
@@ -60,6 +61,11 @@ module.exports = function (apiRouter, config) {
   }];
 
   const resourcePopulateOptions = [{
+    path: 'creator',
+    model: 'User'
+  }];
+
+  const outcomePrepopulateOptions = [{
     path: 'creator',
     model: 'User'
   }];
@@ -820,6 +826,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.post('/:project/resources', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
     if ( !(this.request.body.fields.title && this.request.body.fields.title.trim()) ) {
+      // XXX Need to remove uploaded file
       this.throw(400, 'required_parameter_missing');
       return;
     }
@@ -900,17 +907,20 @@ module.exports = function (apiRouter, config) {
     try {
       resource = yield Resource.findOne({ _id: this.params.resource }).exec();
     } catch(err) {
+      // XXX Need to remove uploaded file
       console.error(err);
       this.throw(500, 'internal_server_error');
       return;
     }
 
     if ( !resource ) {
+      // XXX Need to remove uploaded file
       this.throw(404, 'not_found');
       return;
     }
 
     if ( !resource.project.equals(this.params.project) ) {
+      // XXX Need to remove uploaded file
       this.throw(403, 'permission_error');
       return;
     }
@@ -936,6 +946,7 @@ module.exports = function (apiRouter, config) {
     if ( this.request.body.fields.title ) {
       resource.title = this.request.body.fields.title.trim();
     } else {
+      // XXX Need to remove uploaded file
       this.throw(400, 'required_parameter_missing');
       return;
     }
@@ -1043,6 +1054,193 @@ module.exports = function (apiRouter, config) {
       this.apiRespond(resource);
     } catch (err) {
       console.error('Resource removal failed', err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.get('/:project/outcomes', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    try {
+      const outcomes = yield Outcome.find({ project: this.params.project }).populate(outcomePrepopulateOptions).exec();
+
+      this.apiRespond(outcomes);
+    } catch (err) {
+      console.error('Getting outcome list failed', err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.post('/:project/outcomes', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
+    if ( !(this.request.body.fields.title && this.request.body.fields.title.trim() && this.request.body.files.file) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    const title = this.request.body.fields.title.trim();
+    const description = this.request.body.fields.description;
+    const file = {
+      size: this.request.body.files.file.size,
+      name: this.request.body.files.file.name,
+      type: this.request.body.files.file.type
+    };
+
+    try {
+      let outcome = new Outcome({
+        title: title,
+        description: description,
+        versions: [
+          {
+            file: file,
+            creator: this.user._id
+          }
+        ],
+        creator: this.user._id,
+        project: this.params.project,
+      });
+
+      outcome = yield outcome.save();
+
+      outcome = yield Outcome.populate(outcome, outcomePrepopulateOptions);
+
+      try {
+        // XXX Project is probably a full object, should make sesne to only use the _id attribute
+        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createVersionFilePathMatrix(outcome.project._id, outcome._id, outcome.versions[0]._id));
+      } catch (err) {
+        console.error('Moving of uploaded outcome file failed', err);
+      }
+
+      this.emitApiAction('create', 'outcome', outcome);
+
+      this.apiRespond(outcome);
+    } catch(err) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded outcome file failed', err);
+        }
+      }
+      console.error('Outcome creation failed', err);
+      this.throw(500, 'creation_failed');
+    }
+  });
+
+  projectRouter.put('/:project/outcomes/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
+    let outcome;
+
+    try {
+      outcome = yield Outcome.findOne({ _id: this.params.outcome }).exec();
+    } catch(err) {
+      console.error(err);
+      // XXX Need to remove uploaded file
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !outcome ) {
+      // XXX Need to remove uploaded file
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( this.request.body.fields.title ) {
+      outcome.title = this.request.body.fields.title.trim();
+    } else {
+      // XXX Need to remove uploaded file
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+    if ( this.request.body.fields.description !== undefined ) {
+      outcome.description = this.request.body.fields.description;
+    }
+
+    if ( this.request.body.files.file ) {
+      outcome.files.push({
+        file: {
+          size: this.request.body.files.file.size,
+          name: this.request.body.files.file.name,
+          type: this.request.body.files.file.type
+        },
+        creator: this.user._id
+      });
+    }
+
+    try {
+      outcome = yield outcome.save();
+
+      outcome = yield Outcome.populate(outcome, outcomePrepopulateOptions);
+
+      if ( this.request.body.files.file ) {
+        try {
+          // XXX Project is probably a full object, should make sesne to only use the _id attribute
+          // XXX Need a better way t determine last version
+          yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createVersionFilePathMatrix(outcome.project._id, outcome._id, outcome.versions[outcome.version.length-1]._id));
+        } catch (err) {
+          console.error('Moving of uploaded outcome file failed', err);
+        }
+      }
+
+      this.emitApiAction('update', 'outcome', outcome);
+
+      this.apiRespond(outcome);
+    } catch(err) {
+      // Clean-up the uploaded file in case something fails
+      if ( this.request.body.files.file ) {
+        try {
+          yield removeFile(this.request.body.files.file.path);
+        } catch (err) {
+          console.error('Removal of temporary uploaded outcome file failed', err);
+        }
+      }
+      console.error('Outcome update failed', err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  projectRouter.delete('/:project/outcomes/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let outcome;
+
+    if ( 1 === 1 ) {
+      this.throw(501, 'not_implemented');
+      return;
+    }
+
+    try {
+      outcome = yield Outcome.findOne({ _id: this.params.outcome }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !outcome ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !outcome.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      yield outcome.remove();
+
+      if ( outcome.versions ) {
+        for ( let i = 0; i < outcome.versions.length; i++ ) {
+          try {
+            yield removeFile(config.app.fs.storageDir + '/' + outcome.getVersionFilePath(outcome.versions[i]._id));
+          } catch(err) {
+            console.error('Removal of existing resource file failed', err);
+          }
+        }
+      }
+
+      this.emitApiAction('delete', 'outcome', outcome);
+
+      this.apiRespond(outcome);
+    } catch (err) {
+      console.error('Outcome removal failed', err);
       this.throw(500, 'internal_server_error');
     }
   });
