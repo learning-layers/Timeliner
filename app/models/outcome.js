@@ -9,7 +9,15 @@ let outcomeVersionSchema = new Schema({
   created: Date
 });
 
-mongoose.model('OutcomeVersion', outcomeVersionSchema);
+outcomeVersionSchema.pre('save', function(done) {
+  const currentDate = new Date();
+
+  if (!this.created){
+    this.created = currentDate;
+  }
+
+  done();
+});
 
 // Create a schema
 let outcomeSchema = new Schema({

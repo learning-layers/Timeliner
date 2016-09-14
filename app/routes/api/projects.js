@@ -65,9 +65,16 @@ module.exports = function (apiRouter, config) {
     model: 'User'
   }];
 
+  // XXX There seems to be an issue with population of embedded versions
   const outcomePrepopulateOptions = [{
     path: 'creator',
-    model: 'User'
+    model: 'User',
+  },{
+    path: 'versions',
+    populate: {
+      path: 'creator',
+      model: 'User'
+    }
   }];
 
   const projectRouter = new Router({ prefix: '/projects' });
@@ -1071,6 +1078,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.post('/:project/outcomes', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParserUpload, function *() {
     if ( !(this.request.body.fields.title && this.request.body.fields.title.trim() && this.request.body.files.file) ) {
+      // XXX Remove uploaded file if present
       this.throw(400, 'required_parameter_missing');
       return;
     }
@@ -1103,7 +1111,7 @@ module.exports = function (apiRouter, config) {
 
       try {
         // XXX Project is probably a full object, should make sesne to only use the _id attribute
-        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createVersionFilePathMatrix(outcome.project._id, outcome._id, outcome.versions[0]._id));
+        yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Outcome.createVersionFilePathMatrix(outcome.project, outcome._id, outcome.versions[0]._id));
       } catch (err) {
         console.error('Moving of uploaded outcome file failed', err);
       }
@@ -1155,7 +1163,7 @@ module.exports = function (apiRouter, config) {
     }
 
     if ( this.request.body.files.file ) {
-      outcome.files.push({
+      outcome.versions.push({
         file: {
           size: this.request.body.files.file.size,
           name: this.request.body.files.file.name,
@@ -1172,9 +1180,8 @@ module.exports = function (apiRouter, config) {
 
       if ( this.request.body.files.file ) {
         try {
-          // XXX Project is probably a full object, should make sesne to only use the _id attribute
-          // XXX Need a better way t determine last version
-          yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Resource.createVersionFilePathMatrix(outcome.project._id, outcome._id, outcome.versions[outcome.version.length-1]._id));
+          // XXX Need a better way to determine last version
+          yield moveFile(this.request.body.files.file.path, config.app.fs.storageDir + '/' + Outcome.createVersionFilePathMatrix(outcome.project, outcome._id, outcome.versions[outcome.versions.length-1]._id));
         } catch (err) {
           console.error('Moving of uploaded outcome file failed', err);
         }
