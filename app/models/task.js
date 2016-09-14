@@ -13,7 +13,7 @@ let taskSchema = new Schema({
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     participants:  { type: [{ type: Schema.Types.ObjectId, ref: 'Participant' }], index: true },
     resources:  { type: [{ type: Schema.Types.ObjectId, ref: 'Resource' }], index: true },
-    documents:  { type: [{ type: Schema.Types.ObjectId, ref: 'Document' }], index: true },
+    outcomes:  { type: [{ type: Schema.Types.ObjectId, ref: 'Outcome' }], index: true },
     created: Date,
     updated: Date
   },

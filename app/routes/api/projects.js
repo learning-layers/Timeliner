@@ -58,6 +58,13 @@ module.exports = function (apiRouter, config) {
   const taskPopulateOptions = [{
     path: 'creator',
     model: 'User'
+  },{
+    path : 'participants',
+    model: 'Participant',
+    populate: {
+      path: 'user',
+      model: 'User'
+    }
   }];
 
   const resourcePopulateOptions = [{
