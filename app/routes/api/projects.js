@@ -1207,11 +1207,6 @@ module.exports = function (apiRouter, config) {
   projectRouter.delete('/:project/outcomes/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let outcome;
 
-    if ( 1 === 1 ) {
-      this.throw(501, 'not_implemented');
-      return;
-    }
-
     try {
       outcome = yield Outcome.findOne({ _id: this.params.outcome }).exec();
     } catch(err) {

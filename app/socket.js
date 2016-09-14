@@ -308,4 +308,16 @@ module.exports = function (app) {
   app.on('delete:resource', function(resource) {
     app._io.in(resource.project).emit('delete:resource', resource);
   });
+
+  app.on('create:outcome', function(outcome) {
+    app._io.in(outcome.project).emit('create:outcome', outcome);
+  });
+
+  app.on('update:outcome', function(outcome) {
+    app._io.in(outcome.project).emit('update:outcome', outcome);
+  });
+
+  app.on('delete:outcome', function(outcome) {
+    app._io.in(outcome.project).emit('delete:outcome', outcome);
+  });
 };
