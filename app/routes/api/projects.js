@@ -794,6 +794,57 @@ module.exports = function (apiRouter, config) {
     }
   });
 
+  projectRouter.post('/:project/tasks/:task/participants/:participant', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
+    let task, participant;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      participant = yield Participant.findOne({ project: this.params.project, _id: this.params.participant }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.participants.indexOf(participant._id) === -1) {
+      task.participants.push(participant._id);
+    } else {
+      this.throw(409, 'already_is_a_participant');
+      return;
+    }
+
+    try {
+
+      task = yield task.save();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
   projectRouter.delete('/:project/tasks/:task', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let task;
 

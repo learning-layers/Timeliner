@@ -55,7 +55,7 @@ module.exports = {
         _id: decoded.sub
       };
     } catch (err) {
-      this.thow(401, 'token_verification_failed');
+      this.throw(401, 'token_verification_failed');
       return;
     }
 
