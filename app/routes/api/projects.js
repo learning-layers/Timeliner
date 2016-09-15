@@ -88,7 +88,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Auth.ensureAdmin, function *() {
     try {
-      const projects = yield Project.find({}).populate(projectPopulateOptions).exec();
+      const projects = yield Project.find({}).sort({ created: 1 }).populate(projectPopulateOptions).exec();
 
       this.apiRespond(projects);
     } catch (err) {
@@ -104,7 +104,7 @@ module.exports = function (apiRouter, config) {
       // Full user objects might not be needed. It could be enough to get:
       // _id, name and email (not sure of last one is really needed here)
       // Limiting amout of loaded data should be a wise choice
-      const projects = yield Project.find({ _id: { $in: ids } }).populate(projectPopulateOptions).exec();
+      const projects = yield Project.find({ _id: { $in: ids } }).sort({ created: 1 }).populate(projectPopulateOptions).exec();
       this.apiRespond(projects);
     } catch(err) {
       console.error(err);
@@ -116,7 +116,7 @@ module.exports = function (apiRouter, config) {
     let project;
 
     try {
-      project = yield Project.findOne({ _id: this.params.project }).populate(projectPopulateOptions).exec();
+      project = yield Project.findOne({ _id: this.params.project }).sort({ created: 1 }).populate(projectPopulateOptions).exec();
 
       this.apiRespond(project);
     } catch (err) {
@@ -422,7 +422,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/:project/annotations', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
-      const annotations = yield Annotation.find({ project: this.params.project }).populate(annotationPopulateOptions).exec();
+      const annotations = yield Annotation.find({ project: this.params.project }).sort({ created: 1 }).populate(annotationPopulateOptions).exec();
 
       this.apiRespond(annotations);
     } catch (err) {
@@ -545,7 +545,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/:project/milestones', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
-      const milestones = yield Milestone.find({ project: this.params.project }).populate(milestonePopulateOptions).exec();
+      const milestones = yield Milestone.find({ project: this.params.project }).sort({ created: 1 }).populate(milestonePopulateOptions).exec();
 
       this.apiRespond(milestones);
     } catch (err) {
@@ -674,7 +674,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/:project/tasks', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
-      const tasks = yield Task.find({ project: this.params.project }).populate(taskPopulateOptions).exec();
+      const tasks = yield Task.find({ project: this.params.project }).sort({ created: 1 }).populate(taskPopulateOptions).exec();
 
       this.apiRespond(tasks);
     } catch (err) {
@@ -829,7 +829,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/:project/resources', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
-      const resources = yield Resource.find({ project: this.params.project }).populate(resourcePopulateOptions).exec();
+      const resources = yield Resource.find({ project: this.params.project }).sort({ created: 1 }).populate(resourcePopulateOptions).exec();
 
       this.apiRespond(resources);
     } catch (err) {
@@ -1074,7 +1074,7 @@ module.exports = function (apiRouter, config) {
 
   projectRouter.get('/:project/outcomes', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     try {
-      const outcomes = yield Outcome.find({ project: this.params.project }).populate(outcomePrepopulateOptions).exec();
+      const outcomes = yield Outcome.find({ project: this.params.project }).sort({ created: 1 }).populate(outcomePrepopulateOptions).exec();
 
       this.apiRespond(outcomes);
     } catch (err) {
