@@ -171,6 +171,8 @@ module.exports = function (apiRouter, config) {
       // TODO Check it this could fail and effect others somehow
       project = yield Project.populate(project, projectPopulateOptions);
 
+      this.emitApiAction('create', 'project', project, this.user);
+
       this.apiRespond(project);
     } catch(err) {
       console.error(err);
@@ -228,6 +230,8 @@ module.exports = function (apiRouter, config) {
 
       project = yield Project.populate(project, projectPopulateOptions);
 
+      this.emitApiAction('update', 'project', project, this.user);
+
       this.apiRespond(project);
     } catch(err) {
       console.error(err);
@@ -241,6 +245,10 @@ module.exports = function (apiRouter, config) {
       // This would leave the system in a bad state
       yield Project.find({ _id: this.params.project }).remove().exec();
       yield Participant.find({ project: this.params.project }).remove().exec();
+
+      this.emitApiAction('delete', 'project', {
+        _id: this.params.project
+      }, this.user);
 
       this.apiRespond({
         _id: this.params.project
@@ -450,7 +458,7 @@ module.exports = function (apiRouter, config) {
 
       annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
 
-      this.emitApiAction('create', 'annotation', annotation);
+      this.emitApiAction('create', 'annotation', annotation, this.user);
 
       this.apiRespond(annotation);
     } catch(err) {
@@ -498,7 +506,7 @@ module.exports = function (apiRouter, config) {
 
       annotation = yield Annotation.populate(annotation, annotationPopulateOptions);
 
-      this.emitApiAction('update', 'annotation', annotation);
+      this.emitApiAction('update', 'annotation', annotation, this.user);
 
       this.apiRespond(annotation);
     } catch(err) {
@@ -530,7 +538,7 @@ module.exports = function (apiRouter, config) {
     try {
       yield annotation.remove();
 
-      this.emitApiAction('delete', 'annotation', annotation);
+      this.emitApiAction('delete', 'annotation', annotation, this.user);
 
       this.apiRespond(annotation);
     } catch (err) {
@@ -575,7 +583,7 @@ module.exports = function (apiRouter, config) {
 
       milestone = yield Milestone.populate(milestone, milestonePopulateOptions);
 
-      this.emitApiAction('create', 'milestone', milestone);
+      this.emitApiAction('create', 'milestone', milestone, this.user);
 
       this.apiRespond(milestone);
     } catch(err) {
@@ -626,7 +634,7 @@ module.exports = function (apiRouter, config) {
 
       milestone = yield Milestone.populate(milestone, milestonePopulateOptions);
 
-      this.emitApiAction('update', 'milestone', milestone);
+      this.emitApiAction('update', 'milestone', milestone, this.user);
 
       this.apiRespond(milestone);
     } catch(err) {
@@ -659,7 +667,7 @@ module.exports = function (apiRouter, config) {
     try {
       yield milestone.remove();
 
-      this.emitApiAction('delete', 'milestone', milestone);
+      this.emitApiAction('delete', 'milestone', milestone, this.user);
 
       this.apiRespond(milestone);
     } catch (err) {
@@ -714,7 +722,7 @@ module.exports = function (apiRouter, config) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('create', 'task', task);
+      this.emitApiAction('create', 'task', task, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -781,7 +789,7 @@ module.exports = function (apiRouter, config) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task);
+      this.emitApiAction('update', 'task', task, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -832,7 +840,7 @@ module.exports = function (apiRouter, config) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task);
+      this.emitApiAction('update', 'task', task, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -865,7 +873,7 @@ module.exports = function (apiRouter, config) {
     try {
       yield task.remove();
 
-      this.emitApiAction('delete', 'task', task);
+      this.emitApiAction('delete', 'task', task, this.user);
 
       this.apiRespond(task);
     } catch (err) {
@@ -945,7 +953,7 @@ module.exports = function (apiRouter, config) {
         }
       }
 
-      this.emitApiAction('create', 'resource', resource);
+      this.emitApiAction('create', 'resource', resource, this.user);
 
       this.apiRespond(resource);
     } catch(err) {
@@ -1061,7 +1069,7 @@ module.exports = function (apiRouter, config) {
         }
       }
 
-      this.emitApiAction('update', 'resource', resource);
+      this.emitApiAction('update', 'resource', resource, this.user);
 
       this.apiRespond(resource);
     } catch(err) {
@@ -1110,7 +1118,7 @@ module.exports = function (apiRouter, config) {
         }
       }
 
-      this.emitApiAction('delete', 'resource', resource);
+      this.emitApiAction('delete', 'resource', resource, this.user);
 
       this.apiRespond(resource);
     } catch (err) {
@@ -1170,7 +1178,7 @@ module.exports = function (apiRouter, config) {
         console.error('Moving of uploaded outcome file failed', err);
       }
 
-      this.emitApiAction('create', 'outcome', outcome);
+      this.emitApiAction('create', 'outcome', outcome, this.user);
 
       this.apiRespond(outcome);
     } catch(err) {
@@ -1241,7 +1249,7 @@ module.exports = function (apiRouter, config) {
         }
       }
 
-      this.emitApiAction('update', 'outcome', outcome);
+      this.emitApiAction('update', 'outcome', outcome, this.user);
 
       this.apiRespond(outcome);
     } catch(err) {
@@ -1292,7 +1300,7 @@ module.exports = function (apiRouter, config) {
         }
       }
 
-      this.emitApiAction('delete', 'outcome', outcome);
+      this.emitApiAction('delete', 'outcome', outcome, this.user);
 
       this.apiRespond(outcome);
     } catch (err) {

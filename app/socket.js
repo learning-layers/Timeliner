@@ -48,6 +48,10 @@ module.exports = function (app) {
 
     return decodedToken.sub;
   }
+
+  function extractModelFromData(data) {
+    return data.data;
+  }
   io.attach(app);
 
   // Only use WebSocket as a transport
@@ -261,63 +265,78 @@ module.exports = function (app) {
   // This could be used to notify about create/update/delete or any other action
   // along with some details.
   // This could even be used for storing activity stream events within a separate process
-  app.on('create:annotation', function(annotation) {
+  app.on('create:annotation', function(data) {
+    const annotation = extractModelFromData(data);
     app._io.in(annotation.project).emit('create:annotation', annotation);
   });
 
-  app.on('update:annotation', function(annotation) {
+  app.on('update:annotation', function(data) {
+    const annotation = extractModelFromData(data);
     app._io.in(annotation.project).emit('update:annotation', annotation);
   });
 
-  app.on('delete:annotation', function(annotation) {
+  app.on('delete:annotation', function(data) {
+    const annotation = extractModelFromData(data);
     app._io.in(annotation.project).emit('delete:annotation', annotation);
   });
 
-  app.on('create:milestone', function(milestone) {
+  app.on('create:milestone', function(data) {
+    const milestone = extractModelFromData(data);
     app._io.in(milestone.project).emit('create:milestone', milestone);
   });
 
-  app.on('update:milestone', function(milestone) {
+  app.on('update:milestone', function(data) {
+    const milestone = extractModelFromData(data);
     app._io.in(milestone.project).emit('update:milestone', milestone);
   });
 
-  app.on('delete:milestone', function(milestone) {
+  app.on('delete:milestone', function(data) {
+    const milestone = extractModelFromData(data);
     app._io.in(milestone.project).emit('delete:milestone', milestone);
   });
 
-  app.on('create:task', function(task) {
+  app.on('create:task', function(data) {
+    const task = extractModelFromData(data);
     app._io.in(task.project).emit('create:task', task);
   });
 
-  app.on('update:task', function(task) {
+  app.on('update:task', function(data) {
+    const task = extractModelFromData(data);
     app._io.in(task.project).emit('update:task', task);
   });
 
-  app.on('delete:task', function(task) {
+  app.on('delete:task', function(data) {
+    const task = extractModelFromData(data);
     app._io.in(task.project).emit('delete:task', task);
   });
 
-  app.on('create:resource', function(resource) {
+  app.on('create:resource', function(data) {
+    const resource = extractModelFromData(data);
     app._io.in(resource.project).emit('create:resource', resource);
   });
 
-  app.on('update:resource', function(resource) {
+  app.on('update:resource', function(data) {
+    const resource = extractModelFromData(data);
     app._io.in(resource.project).emit('update:resource', resource);
   });
 
-  app.on('delete:resource', function(resource) {
+  app.on('delete:resource', function(data) {
+    const resource = extractModelFromData(data);
     app._io.in(resource.project).emit('delete:resource', resource);
   });
 
-  app.on('create:outcome', function(outcome) {
+  app.on('create:outcome', function(data) {
+    const outcome = extractModelFromData(data);
     app._io.in(outcome.project).emit('create:outcome', outcome);
   });
 
-  app.on('update:outcome', function(outcome) {
+  app.on('update:outcome', function(data) {
+    const outcome = extractModelFromData(data);
     app._io.in(outcome.project).emit('update:outcome', outcome);
   });
 
-  app.on('delete:outcome', function(outcome) {
+  app.on('delete:outcome', function(data) {
+    const outcome = extractModelFromData(data);
     app._io.in(outcome.project).emit('delete:outcome', outcome);
   });
 };
