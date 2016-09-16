@@ -27,7 +27,7 @@ module.exports = function (app, config) {
     }
 
     // TODO Check if this is enough or does it need something else
-    this.set('Content-Disposition', 'attachment; filename=' + resource.file.name);
+    this.set('Content-Disposition', 'inline; filename=' + resource.file.name);
     this.set('Content-Type', resource.file.type);
     this.body = fse.createReadStream(config.app.fs.storageDir + '/' + resource.getFilePath());
   });
@@ -60,7 +60,7 @@ module.exports = function (app, config) {
     }
 
     // TODO Check if this is enough or does it need something else
-    this.set('Content-Disposition', 'attachment; filename=' + version.file.name);
+    this.set('Content-Disposition', 'inline; filename=' + version.file.name);
     this.set('Content-Type', version.file.type);
     this.body = fse.createReadStream(config.app.fs.storageDir + '/' + outcome.getVersionFilePath(version._id));
   });
