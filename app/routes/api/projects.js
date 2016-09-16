@@ -72,16 +72,12 @@ module.exports = function (apiRouter, config) {
     model: 'User'
   }];
 
-  // XXX There seems to be an issue with population of embedded versions
   const outcomePrepopulateOptions = [{
     path: 'creator',
     model: 'User',
   },{
-    path: 'versions',
-    populate: {
-      path: 'creator',
-      model: 'User'
-    }
+    path: 'versions.creator',
+    model: 'User'
   }];
 
   const projectRouter = new Router({ prefix: '/projects' });
