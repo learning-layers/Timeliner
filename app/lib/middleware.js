@@ -2,6 +2,7 @@
 
 const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
+const config = require(__dirname + '/../../config/config');
 
 const ensureProjectOwner = function *(next) {
   let project;
@@ -84,9 +85,18 @@ const ensurePendingProjectParticipant = function *(next) {
   return yield next;
 };
 
+const bodyParserUpload = require('koa-body')({
+  multipart: true,
+  formidable: {
+    multiples: false,
+    uploadDir: config.app.fs.uploadDir
+  }
+});
+
 module.exports = {
   ensureProjectOwner: ensureProjectOwner,
   ensureProjectAccessRight: ensureProjectAccessRight,
   ensureActiveProjectParticipant: ensureActiveProjectParticipant,
-  ensurePendingProjectParticipant: ensurePendingProjectParticipant
+  ensurePendingProjectParticipant: ensurePendingProjectParticipant,
+  bodyParserUpload: bodyParserUpload
 };

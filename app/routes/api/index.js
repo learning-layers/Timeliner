@@ -68,8 +68,8 @@ module.exports = function (app, config) {
 
   require(__dirname + '/hello')(apiRouter);
   require(__dirname + '/auth')(apiRouter, config);
-  require(__dirname + '/users')(apiRouter);
-  require(__dirname + '/projects')(apiRouter, config);
+  require(__dirname + '/user')(apiRouter);
+  require(__dirname + '/project')(apiRouter, config);
 
   app.use(apiRouter.routes());
   app.use(apiRouter.allowedMethods());

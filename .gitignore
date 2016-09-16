@@ -2,3 +2,5 @@
 /.idea
 /uploads
 /storage
+
+.DS_Store
