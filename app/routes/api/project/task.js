@@ -2,6 +2,7 @@
 
 const Router = require('koa-router');
 const Participant = require('mongoose').model('Participant');
+const Resource = require('mongoose').model('Resource');
 const Task = require('mongoose').model('Task');
 const bodyParser = require('koa-body')();
 const Auth = require(__dirname + '/../../../auth');
@@ -18,7 +19,10 @@ module.exports = function (projectRouter) {
     populate: {
       path: 'user',
       model: 'User'
-    }
+    },
+  },{
+    path : 'resources',
+    model: 'Resource'
   }];
 
   const taskRouter = new Router({ prefix: '/:project/tasks' });
@@ -178,6 +182,57 @@ module.exports = function (projectRouter) {
       task.participants.push(participant._id);
     } else {
       this.throw(409, 'already_is_a_participant');
+      return;
+    }
+
+    try {
+
+      task = yield task.save();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task, this.user);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  taskRouter.post('/:task/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
+    let task, resource;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      resource = yield Resource.findOne({ project: this.params.project, _id: this.params.resource }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.resources.indexOf(resource._id) === -1) {
+      task.resources.push(resource._id);
+    } else {
+      this.throw(409, 'already_has_this_resource');
       return;
     }
 
