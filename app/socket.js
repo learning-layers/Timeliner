@@ -146,10 +146,10 @@ module.exports = function (app) {
   // the model itself
   io.on( 'move:annotation', ( ctx, data ) => {
     if ( isAuthenticated(ctx) ) {
+      let userId = getAuthenticatedUserId(ctx);
       // XXX need to add checks and error handlers
       // If parameters are passed, user belongs to the project and so on
       co(function* () {
-        let userId = getAuthenticatedUserId(ctx);
         let annotation =  yield Annotation.findOne({ _id: data._id }).exec();
         let participant = Participant.getProjectActiveParticipant(annotation.project, userId);
 
@@ -168,6 +168,10 @@ module.exports = function (app) {
           _id: annotation._id,
           start: annotation.start
         });
+        app.emit('move:annotation', {
+          data: annotation,
+          actor: userId
+        });
       }, function(err) {
         // TODO Need to signal to the socket that movement failed
         console.error(err);
@@ -179,10 +183,10 @@ module.exports = function (app) {
   // the model itself
   io.on( 'move:milestone', ( ctx, data ) => {
     if ( isAuthenticated(ctx) ) {
+      let userId = getAuthenticatedUserId(ctx);
       // XXX need to add checks and error handlers
       // If parameters are passed, user belongs to the project and so on
       co(function* () {
-        let userId = getAuthenticatedUserId(ctx);
         let milestone =  yield Milestone.findOne({ _id: data._id }).exec();
         let participant = yield Participant.getProjectActiveParticipant(milestone.project, userId);
 
@@ -201,6 +205,10 @@ module.exports = function (app) {
           _id: milestone._id,
           start: milestone.start
         });
+        app.emit('move:milestone', {
+          data: milestone,
+          actor: userId
+        });
       }, function(err) {
         // TODO Need to signal to the socket that movement failed
         console.error(err);
@@ -212,10 +220,10 @@ module.exports = function (app) {
   // the model itself
   io.on( 'move:task', ( ctx, data ) => {
     if ( isAuthenticated(ctx) ) {
+      let userId = getAuthenticatedUserId(ctx);
       // XXX need to add checks and error handlers
       // If parameters are passed, user belongs to the project and so on
       co(function* () {
-        let userId = getAuthenticatedUserId(ctx);
         let task =  yield Task.findOne({ _id: data._id }).exec();
         let participant = yield Participant.getProjectActiveParticipant(task.project, userId);
 
@@ -235,6 +243,10 @@ module.exports = function (app) {
           _id: task._id,
           start: task.start,
           end: task.end
+        });
+        app.emit('move:task', {
+          data: task,
+          actor: userId
         });
       }, function(err) {
         // TODO Need to signal to the socket that movement failed
@@ -338,5 +350,10 @@ module.exports = function (app) {
   app.on('delete:outcome', function(data) {
     const outcome = extractModelFromData(data);
     app._io.in(outcome.project).emit('delete:outcome', outcome);
+  });
+
+  app.on('create:activity', function(data) {
+    const activity = extractModelFromData(data);
+    app._io.in(activity.project).emit('create:activity', activity);
   });
 };

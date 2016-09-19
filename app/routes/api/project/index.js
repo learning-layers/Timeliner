@@ -241,6 +241,7 @@ module.exports = function (apiRouter, config) {
   require(__dirname + '/participant')(projectRouter);
   require(__dirname + '/resource')(projectRouter, config);
   require(__dirname + '/outcome')(projectRouter, config);
+  require(__dirname + '/activity')(projectRouter);
 
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());
 };

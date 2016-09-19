@@ -35,6 +35,9 @@ require(__dirname + '/app/routes')(app, config);
 // socket.io powered WebSocket
 require(__dirname + '/app/socket')(app);
 
+// Activity stream
+require(__dirname + '/app/activity')(app);
+
 // Start app
 if (!module.parent) {
   app.listen(process.env.PORT || config.app.port);
