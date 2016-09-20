@@ -3,6 +3,7 @@
 const Router = require('koa-router');
 const Participant = require('mongoose').model('Participant');
 const Resource = require('mongoose').model('Resource');
+const Outcome = require('mongoose').model('Outcome');
 const Task = require('mongoose').model('Task');
 const bodyParser = require('koa-body')();
 const Auth = require(__dirname + '/../../../auth');
@@ -23,6 +24,9 @@ module.exports = function (projectRouter) {
   },{
     path : 'resources',
     model: 'Resource'
+  },{
+    path : 'outcomes',
+    model: 'Outcome'
   }];
 
   const taskRouter = new Router({ prefix: '/:project/tasks' });
@@ -233,6 +237,57 @@ module.exports = function (projectRouter) {
       task.resources.push(resource._id);
     } else {
       this.throw(409, 'already_has_this_resource');
+      return;
+    }
+
+    try {
+
+      task = yield task.save();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task, this.user);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  taskRouter.post('/:task/outcomes/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
+    let task, outcome;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      outcome = yield Outcome.findOne({ project: this.params.project, _id: this.params.outcome }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.outcomes.indexOf(outcome._id) === -1) {
+      task.outcomes.push(outcome._id);
+    } else {
+      this.throw(409, 'already_has_this_outcome');
       return;
     }
 
