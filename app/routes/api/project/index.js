@@ -242,6 +242,7 @@ module.exports = function (apiRouter, config) {
   require(__dirname + '/resource')(projectRouter, config);
   require(__dirname + '/outcome')(projectRouter, config);
   require(__dirname + '/activity')(projectRouter);
+  require(__dirname + '/message')(projectRouter);
 
   apiRouter.use('', projectRouter.routes(), projectRouter.allowedMethods());
 };

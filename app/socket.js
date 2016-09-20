@@ -356,4 +356,9 @@ module.exports = function (app) {
     const activity = extractModelFromData(data);
     app._io.in(activity.project).emit('create:activity', activity);
   });
+
+  app.on('create:message', function(data) {
+    const message = extractModelFromData(data);
+    app._io.in(message.project).emit('create:message', message);
+  });
 };
