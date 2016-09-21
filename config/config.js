@@ -17,9 +17,13 @@ module.exports = {
       from: '"Timeliner" <no-reply@timeliner.me>',
       subject: 'Timeliner automatic email message',
       smtp: {
-        hostname: '',
-        login: '',
-        password: ''
+        host: '',
+        port: 465,
+        secure: true,
+        auth: {
+          user: '',
+          pass: ''
+        }
       }
     },
     jwt: {

@@ -7,7 +7,9 @@ const crypto = require('crypto');
 const auth = require(__dirname + '/../../auth');
 const reCaptcha = require(__dirname + '/../../reCaptcha')();
 
-module.exports = function (apiRouter) {
+module.exports = function (apiRouter, config) {
+
+  const mailer = require(__dirname + '/../../mailer')(config.app.mail);
 
   let authRouter = new Router({ prefix: '/auth' });
 
@@ -26,11 +28,22 @@ module.exports = function (apiRouter) {
 
       user = yield User.createAccount(user);
 
+      try {
+        yield mailer.sendConfirmation(user.email, user.email, config.app.uiUrl + '/#/confirm/' + user.confirmationKey.key);
+      } catch (err) {
+        // Remove an account as the activation email could not be sent
+        yield user.remove();
+        
+        console.error('Could not send confirmation email', err);
+        this.throw(500, 'email_not_sent');
+        return;
+      }
+
       this.apiRespond(201, {
         email: user.email,
       });
 
-      // TODO this should be sent by email
+      // TODO This should be removed
       console.log('User registered, confirm link: confirm/' + user.confirmationKey.key);
     } catch (err) {
       if( err.message === 'captcha_verification_invalid' ) {
@@ -126,6 +139,10 @@ module.exports = function (apiRouter) {
       console.error(err); // TODO Remove me
       this.throw(401, 'authentication_failed');
     }
+  });
+
+  authRouter.post('reset', bodyParser, function *() {
+    this.throw(501, 'not_implemented');
   });
 
   authRouter.get('/me', auth.ensureAuthenticated, auth.ensureUser, function *() {

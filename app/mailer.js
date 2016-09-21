@@ -4,11 +4,21 @@ const nodemailer = require('nodemailer');
 const _ = require('lodash');
 
 module.exports = function(mailConfig) {
-  const transporter = nodemailer.createTransport('smtps://' + mailConfig.smtp.login+ ':' + mailConfig.smtp.password + '@' + mailConfig.smtp.hostname);
+  const transporter = nodemailer.createTransport(mailConfig.smtp);
   const defaultMailOptions = {
     from: mailConfig.from,
     subject: mailConfig.subject
   };
+  const sendConfirmation = transporter.templateSender({
+    from: defaultMailOptions.from,
+    subject: 'Registration confirmation',
+    text: 'Dear {{ email }} address owner!\r\n\r\nPlease proceed to this URL to complete your registration process:\r\n{{ confirmation }}\r\n\r\nBest,\r\nTimeliner Team'
+  });
+  const sendPasswordReset = transporter.templateSender({
+    from: defaultMailOptions.from,
+    subject: 'Password reset',
+    text: 'Dear {{ fullname }}!\r\n\r\nPlease proceed to this URL to reset your password:\r\n{{ reset }}\r\n\r\nBest,\r\nTimeliner Team'
+  });
 
   return {
     /**
@@ -18,7 +28,7 @@ module.exports = function(mailConfig) {
      * @param  {object} options Options that would be used when sending email
      * @return {promise}        Yield a promise
      */
-    sendMail: function *(options) {
+    sendMail: function (options) {
       if ( !options.to ) {
         throw new Error('Recipient email is required!');
       }
@@ -29,7 +39,23 @@ module.exports = function(mailConfig) {
 
       let mailOptions = _.defaults(options, defaultMailOptions);
 
-      return yield transporter.sendMail(mailOptions);
+      return transporter.sendMail(mailOptions);
+    },
+    sendConfirmation: function(to, email, confirmationUrl) {
+      return sendConfirmation({
+        to: to
+      }, {
+        email: email,
+        confirmation: confirmationUrl
+      });
+    },
+    sendPasswordReset: function(to, fullName, resetUrl) {
+      return sendPasswordReset({
+        to: to
+      }, {
+        fullname: fullName,
+        reset : resetUrl
+      });
     }
   };
 };
