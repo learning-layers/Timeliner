@@ -153,7 +153,6 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
     throw new Error('User not found');
   }
 
-  //TODO check key validity
   return user;
 };
 
