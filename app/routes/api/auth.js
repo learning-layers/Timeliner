@@ -20,7 +20,7 @@ module.exports = function (apiRouter, config) {
       let user = new User({
         email: this.request.body.email.toLowerCase(),
         confirmationKey: {
-          key: generateConfirmationKey(),
+          key: generateRandomKey(),
           created: new Date()
         },
         isActivated: false
@@ -33,7 +33,7 @@ module.exports = function (apiRouter, config) {
       } catch (err) {
         // Remove an account as the activation email could not be sent
         yield user.remove();
-        
+
         console.error('Could not send confirmation email', err);
         this.throw(500, 'email_not_sent');
         return;
@@ -136,13 +136,126 @@ module.exports = function (apiRouter, config) {
       });
       this.session = null;
     } catch (err) {
-      console.error(err); // TODO Remove me
+      console.error(err);
       this.throw(401, 'authentication_failed');
     }
   });
 
-  authRouter.post('reset', bodyParser, function *() {
-    this.throw(501, 'not_implemented');
+  authRouter.post('/reset/request', bodyParser, function *() {
+    let user;
+
+    try {
+      yield reCaptcha.verify(this.request.body.captchaResponse, this.request.ip);
+    } catch (err) {
+      this.throw(401, 'captcha_verification_invalid');
+      return;
+    }
+
+    if ( !( this.request.body.email && this.request.body.email.trim() ) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    try {
+      user = yield User.findByEmail(this.request.body.email);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !user ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !user.password ) {
+      this.throw(400, 'password_reset_forbidden');
+      return;
+    }
+
+    user.passwordResetKey = {
+      key: generateRandomKey(),
+      created: new Date()
+    };
+
+    try {
+      user = yield user.save();
+
+      try {
+        yield mailer.sendPasswordReset(user.email, user.email, config.app.uiUrl + '/#/reset/' + user.passwordResetKey.key);
+      } catch (err) {
+        console.error('Could not send password reset email', err);
+        this.throw(500, 'email_not_sent');
+        return;
+      }
+
+      this.apiRespond(200, {
+        email: user.email
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  authRouter.get('/reset/:key', function *(){
+    try {
+      yield User.findByPasswordResetKey(this.params.key);
+      this.apiRespond({
+        key: this.params.key
+      });
+    } catch (error) {
+      console.error(error);
+      this.throw(404, 'expired_or_missing_key');
+      throw error;
+    }
+  });
+
+  authRouter.post('/reset', bodyParser, function *() {
+    let user;
+
+    if ( !( this.request.body.email && this.request.body.email.trim() && this.request.body.passwordResetKey ) ) {
+      this.throw(400, 'required_parameter_missing');
+      return;
+    }
+
+    try {
+      user = yield User.findByPasswordResetKey(this.request.body.passwordResetKey);
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !user ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( user.email !== this.request.body.email.toLowerCase() ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !user.password ) {
+      this.throw(400, 'password_reset_forbidden');
+      return;
+    }
+
+    user.password = this.request.body.password;
+    user.passwordResetKey = undefined;
+
+    try {
+      user = yield user.save();
+      yield user.updateLastLogin();
+      this.apiRespond({
+        key: this.request.body.passwordResetKey
+      });
+    } catch (err) {
+      console.error(err);
+      this.throw(500, 'password_reset_failed');
+    }
   });
 
   authRouter.get('/me', auth.ensureAuthenticated, auth.ensureUser, function *() {
@@ -152,6 +265,6 @@ module.exports = function (apiRouter, config) {
   apiRouter.use('', authRouter.routes(), authRouter.allowedMethods());
 };
 
-function generateConfirmationKey() {
+function generateRandomKey() {
   return crypto.randomBytes(20).toString('hex');
 }

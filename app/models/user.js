@@ -25,6 +25,10 @@ let userSchema = new Schema({
       key: String,
       created: Date
     },
+    passwordResetKey: {
+      key: String,
+      created: Date
+    },
     lastLogin: Date,
     social: [{
       provider: { type: String, required: true },
@@ -148,7 +152,6 @@ userSchema.statics.findByConfirmationKey = function *(confirmKey) {
     throw new Error('User not found');
   }
 
-
   //TODO check key validity
   return user;
 };
@@ -170,6 +173,27 @@ userSchema.statics.findBySocialToken = function *(provider, token) {
   }
 
   // TODO Check user validity (isAcivated and not blocked)
+  return user;
+};
+
+userSchema.statics.findByEmail = function *(email) {
+  const user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
+
+  if ( !user ) {
+    throw new Error('Uset not found');
+  }
+
+  // TODO Check user validity (isActivated and not blocked)
+  return user;
+};
+
+userSchema.statics.findByPasswordResetKey = function *(passwordResetKey) {
+  const user = yield this.findOne({ 'passwordResetKey.key': passwordResetKey }).exec();
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  //TODO check key validity
   return user;
 };
 
