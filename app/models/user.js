@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const bcrypt   = require('bcrypt-nodejs');
+const moment = require('moment');
 
 const Schema = mongoose.Schema;
 
@@ -180,7 +181,7 @@ userSchema.statics.findByEmail = function *(email) {
   const user = yield this.findOne({ 'email': email.toLowerCase() }).exec();
 
   if ( !user ) {
-    throw new Error('Uset not found');
+    throw new Error('User not found');
   }
 
   // TODO Check user validity (isActivated and not blocked)
@@ -188,12 +189,15 @@ userSchema.statics.findByEmail = function *(email) {
 };
 
 userSchema.statics.findByPasswordResetKey = function *(passwordResetKey) {
-  const user = yield this.findOne({ 'passwordResetKey.key': passwordResetKey }).exec();
+  const user = yield this.findOne({ 'passwordResetKey.key': passwordResetKey, 'passwordResetKey.created': { '$gte': moment().subtract(1, 'days').toDate() } }).exec();
   if (!user) {
     throw new Error('User not found');
   }
 
-  //TODO check key validity
+  if ( user.isActivated !== true ) {
+    throw new Error('User not active');
+  }
+
   return user;
 };
 

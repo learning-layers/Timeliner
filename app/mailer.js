@@ -17,7 +17,7 @@ module.exports = function(mailConfig) {
   const sendPasswordReset = transporter.templateSender({
     from: defaultMailOptions.from,
     subject: 'Password reset',
-    text: 'Dear {{ fullname }}!\r\n\r\nPlease proceed to this URL to reset your password:\r\n{{ reset }}\r\n\r\nBest,\r\nTimeliner Team'
+    text: 'Dear {{ fullname }}!\r\n\r\nPlease proceed to this URL to reset your password:\r\n{{ reset }}\r\nThe reset token will would expire within one day.\r\n\r\nBest,\r\nTimeliner Team'
   });
 
   return {
