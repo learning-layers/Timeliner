@@ -44,10 +44,14 @@ let userSchema = new Schema({
   {
     toJSON : {
       transform: function (doc, ret) {
+        delete ret.__v;
         delete ret.password;
         delete ret.isActivated;
+        delete ret.isAdmin;
+        delete ret.created;
         delete ret.updated;
-        delete ret.__v;
+        delete ret.confirmationKey;
+        delete ret.passwordResetKey;
         delete ret.lastLogin;
         delete ret.social;
       }
@@ -109,6 +113,16 @@ userSchema.methods.updateSocialProviderAccessToken = function *(provider, id, to
 
     yield this.save();
   }
+};
+
+userSchema.methods.getObjectWithPrivateData = function() {
+  return {
+    _id: this._id,
+    email: this.email,
+    name: this.name,
+    image: this.image,
+    isAdmin: this.isAdmin
+  };
 };
 
 /**

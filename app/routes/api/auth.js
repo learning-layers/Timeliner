@@ -82,7 +82,7 @@ module.exports = function (apiRouter, config) {
       user = yield user.save();
       yield user.updateLastLogin();
       this.apiRespond({
-        user: user,
+        user: user.getObjectWithPrivateData(),
         token: auth.generateAuthToken({ sub: user._id })
       });
     } catch (err) {
@@ -99,7 +99,7 @@ module.exports = function (apiRouter, config) {
         let user = yield User.matchUser(this.request.body.email, this.request.body.password);
         yield user.updateLastLogin();
         this.apiRespond({
-          user: user,
+          user: user.getObjectWithPrivateData(),
           token: auth.generateAuthToken({ sub: user._id })
         });
       } catch (err) {
@@ -131,7 +131,7 @@ module.exports = function (apiRouter, config) {
       let user = yield User.findBySocialToken(grantData.provider, grantData.response.access_token);
       yield user.updateLastLogin();
       this.apiRespond({
-        user: user,
+        user: user.getObjectWithPrivateData(),
         token: auth.generateAuthToken({ sub: user._id, social: true, provider: grantData.provider })
       });
       this.session = null;
@@ -259,7 +259,7 @@ module.exports = function (apiRouter, config) {
   });
 
   authRouter.get('/me', auth.ensureAuthenticated, auth.ensureUser, function *() {
-    this.apiRespond(this.user);
+    this.apiRespond(this.user.getObjectWithPrivateData());
   });
 
   apiRouter.use('', authRouter.routes(), authRouter.allowedMethods());

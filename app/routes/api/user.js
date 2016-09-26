@@ -10,16 +10,12 @@ module.exports = function (apiRouter) {
 
   userRouter.get('/', auth.ensureAuthenticated, auth.ensureUser, auth.ensureAdmin, function *() {
     try {
-      const users = yield User.find({}).exec();
+      const users = yield User.find({}, 'email name image isAdmin').lean().exec();
 
       this.apiRespond(users);
     } catch(err) {
       this.throw(500, 'internal_server_error');
     }
-  });
-
-  userRouter.get('/kala', function *() {
-    this.throw(501, 'not_implemented');
   });
 
   userRouter.put('/:user/manage/admin', auth.ensureAuthenticated, auth.ensureUser, auth.ensureAdmin, bodyParser, function *() {
