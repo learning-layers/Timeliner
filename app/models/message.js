@@ -8,7 +8,7 @@ let messageSchema = new Schema({
     message: { type: String, required: true, maxlength: 150 },
     creator: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
-    created: Date
+    created: { type: Date, index: true }
   },
   {
     toJSON : {

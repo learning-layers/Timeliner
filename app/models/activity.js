@@ -10,7 +10,7 @@ let activitySchema = new Schema({
     data: Schema.Types.Mixed,
     actor: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     project: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
-    created: Date
+    created: { type: Date, index: true }
   },
   {
     toJSON : {
