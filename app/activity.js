@@ -2,9 +2,12 @@
 
 const Activity = require('mongoose').model('Activity');
 
-//
-
 module.exports = function (app) {
+  const activityPopulateOptions = [{
+    path: 'actor',
+    model: 'User'
+  }];
+
   function extractModelFromData(data) {
     return data.data;
   }
@@ -20,6 +23,14 @@ module.exports = function (app) {
 
     if ( object.title ) {
       activityData.title = object.title;
+    }
+    if ( activityType === 'move' ) {
+      if ( object.start ) {
+        activityData.start = object.start;
+      }
+      if ( object.end ) {
+        activityData.end = object.end;
+      }
     }
 
     new Activity({
@@ -43,11 +54,6 @@ module.exports = function (app) {
       console.error('Activity creation failed: ', err);
     });
   }
-
-  const activityPopulateOptions = [{
-    path: 'creator',
-    model: 'User'
-  }];
 
   app.on('create:annotation', function(data) {
     createActivityFromEvent('create', 'annotation', data);

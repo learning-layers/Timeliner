@@ -8,7 +8,7 @@ const Middleware = require(__dirname + '/../../../lib/middleware');
 module.exports = function (projectRouter) {
 
   const activityPopulateOptions = [{
-    path: 'creator',
+    path: 'actor',
     model: 'User'
   }];
 
