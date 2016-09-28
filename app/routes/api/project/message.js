@@ -16,8 +16,26 @@ module.exports = function (projectRouter) {
   const messageRouter = new Router({ prefix: '/:project/messages' });
 
   messageRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let lastCreated;
+    let limit = 50;
+    if ( this.request.query && this.request.query.lastCreated ) {
+      lastCreated = new Date(this.request.query.lastCreated);
+    }
+    if ( this.request.query && this.request.query.limit ) {
+      limit = parseInt(this.request.query.limit);
+      if ( limit > 50 ) {
+        this.throw(400, 'max_item_limit_exceeded');
+        return;
+      }
+    }
+
     try {
-      const messages = yield Message.find({ project: this.params.project }).sort({ created: -1 }).populate(messagePopulateOptions).exec();
+      let messages;
+      if ( lastCreated ) {
+        messages = yield Message.find({ project: this.params.project, created: { $lt: lastCreated } }).sort({ created: -1 }).limit(limit).populate(messagePopulateOptions).exec();
+      } else {
+        messages = yield Message.find({ project: this.params.project }).sort({ created: -1 }).limit(limit).populate(messagePopulateOptions).exec();
+      }
 
       this.apiRespond(messages);
     } catch (err) {

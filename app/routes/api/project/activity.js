@@ -15,8 +15,26 @@ module.exports = function (projectRouter) {
   const activityRouter = new Router({ prefix: '/:project/activities' });
 
   activityRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let lastCreated;
+    let limit = 50;
+    if ( this.request.query && this.request.query.lastCreated ) {
+      lastCreated = new Date(this.request.query.lastCreated);
+    }
+    if ( this.request.query && this.request.query.limit ) {
+      limit = parseInt(this.request.query.limit);
+      if ( limit > 50 ) {
+        this.throw(400, 'max_item_limit_exceeded');
+        return;
+      }
+    }
+
     try {
-      const activities = yield Activity.find({ project: this.params.project }).sort({ created: -1 }).populate(activityPopulateOptions).exec();
+      let activities;
+      if ( lastCreated ) {
+        activities = yield Activity.find({ project: this.params.project, created: { $lt: lastCreated } }).sort({ created: -1 }).limit(limit).populate(activityPopulateOptions).exec();
+      } else {
+        activities = yield Activity.find({ project: this.params.project }).sort({ created: -1 }).limit(limit).populate(activityPopulateOptions).exec();
+      }
 
       this.apiRespond(activities);
     } catch (err) {
