@@ -272,11 +272,21 @@ module.exports = function (app) {
     //ctx.socket.disconnect('Not authenticated!');
   });
 
-  // XXX This is an example of how certain events could be trnsmitted from
-  // route handling middleware to the socket.io or any other listener
-  // This could be used to notify about create/update/delete or any other action
-  // along with some details.
-  // This could even be used for storing activity stream events within a separate process
+  app.on('create:project', function(data) {
+    const project = extractModelFromData(data);
+    app._io.in(project._id).emit('create:project', project);
+  });
+
+  app.on('update:project', function(data) {
+    const project = extractModelFromData(data);
+    app._io.in(project._id).emit('update:project', project);
+  });
+
+  app.on('delete:project', function(data) {
+    const project = extractModelFromData(data);
+    app._io.in(project._id).emit('delete:project', project);
+  });
+
   app.on('create:annotation', function(data) {
     const annotation = extractModelFromData(data);
     app._io.in(annotation.project).emit('create:annotation', annotation);

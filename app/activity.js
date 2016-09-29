@@ -38,7 +38,7 @@ module.exports = function (app) {
       objectType: objectType,
       data: activityData,
       actor: actor._id ? actor._id : actor,
-      project: object.project
+      project: object.project ? object.project : object._id
     })
     .save()
     .then(function(activity) {
@@ -54,6 +54,20 @@ module.exports = function (app) {
       console.error('Activity creation failed: ', err);
     });
   }
+
+  app.on('create:project', function(data) {
+    createActivityFromEvent('create', 'project', data);
+  });
+
+  app.on('update:project', function(data) {
+    createActivityFromEvent('update', 'project', data);
+  });
+
+  // XXX This one is highly questionable as activities
+  // might be removed along with the project itself
+  app.on('delete:project', function(data) {
+    createActivityFromEvent('delete', 'project', data);
+  });
 
   app.on('create:annotation', function(data) {
     createActivityFromEvent('create', 'annotation', data);
