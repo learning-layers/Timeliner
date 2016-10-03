@@ -43,6 +43,12 @@ module.exports = function (app) {
     socket.decodedToken = decodedToken;
   }
 
+  function removeDecodedToken(ctx) {
+    const socket = getRawSocket(ctx);
+
+    socket.decodedToken = null;
+  }
+
   function getAuthenticatedUserId(ctx) {
     const decodedToken = getDecodedToken(ctx);
 
@@ -75,6 +81,17 @@ module.exports = function (app) {
         success: false
       });
     }
+  });
+
+  io.on('logout', ( ctx ) => {
+    const socket = getRawSocket(ctx);
+    if ( isAuthenticated(ctx) ) {
+      removeDecodedToken(ctx);
+    }
+
+    socket.emit('logout', {
+      success: true
+    });
   });
 
   io.on( 'join', ( ctx, data ) => {
@@ -256,20 +273,18 @@ module.exports = function (app) {
   });
 
   io.on( 'connection', ( ctx, data ) => {
-    console.log( 'CONNECTION', data );
-    // XXX This approach has to be checked
-    // will not close unauthenticated sockets for the time being
+    console.log( 'Socket connected with data: ', data );
     /*setTimeout(function() {
-      if ( !ctx.socket.decodedToken ) {
+      if ( !isAuthenticated(ctx) ) {
         ctx.socket.emit('authenticate', {
           success: false,
-          error: 'Not auhenticated, closing connection'
+          errors: [
+            'No authentication found, closing connection.'
+          ]
         });
         ctx.socket.disconnect();
       }
     }, 5000);*/
-    // This one fires the DISCONNECT without any errors
-    //ctx.socket.disconnect('Not authenticated!');
   });
 
   app.on('create:project', function(data) {
