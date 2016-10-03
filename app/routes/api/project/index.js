@@ -83,6 +83,8 @@ module.exports = function (apiRouter, config) {
     const title = this.request.body.title.trim();
     const start = new Date(this.request.body.start);
     const end = this.request.body.end ? new Date(this.request.body.end) : undefined;
+    const description = this.request.body.description ? this.request.body.description : '';
+    const goal = this.request.body.goal ? this.request.body.goal : '';
 
     if ( end && end < start ) {
       this.throw(400, 'end_date_before_start');
@@ -92,6 +94,8 @@ module.exports = function (apiRouter, config) {
     try {
       let project = new Project({
         title: title,
+        description: description,
+        goal: goal,
         start: start,
         end: end,
         creator: this.user._id,
