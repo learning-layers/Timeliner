@@ -24,6 +24,9 @@ module.exports = function (app) {
     if ( object.title ) {
       activityData.title = object.title;
     }
+    if ( object._id ) {
+      activityData.id = object._id;
+    }
     if ( activityType === 'move' ) {
       if ( object.start ) {
         activityData.start = object.start;
