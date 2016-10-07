@@ -14,6 +14,23 @@ module.exports = function (apiRouter) {
 
       this.apiRespond(users);
     } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  userRouter.get('/search', auth.ensureAuthenticated, auth.ensureUser, function *() {
+    try {
+      const users = yield User.find({
+        $text: {
+          $search: this.request.query.text,
+          $language: 'none'
+        }
+      }).limit(10).exec();
+
+      this.apiRespond(users);
+    } catch (err) {
+      console.error(err);
       this.throw(500, 'internal_server_error');
     }
   });

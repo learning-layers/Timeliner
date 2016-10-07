@@ -235,6 +235,13 @@ userSchema.statics.isAdmin = function(user) {
   return user.isAdmin;
 };
 
+userSchema.index({
+  email: 'text',
+  'name.first': 'text',
+  'name.middle': 'text',
+  'name.last': 'text'
+});
+
 
 const User = mongoose.model('User', userSchema);
 
