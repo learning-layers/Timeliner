@@ -15,7 +15,7 @@ module.exports = function (projectRouter) {
 
   const messageRouter = new Router({ prefix: '/:project/messages' });
 
-  messageRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  messageRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     let lastCreated;
     let limit = 50;
     if ( this.request.query && this.request.query.lastCreated ) {

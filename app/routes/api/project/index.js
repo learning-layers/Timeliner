@@ -211,7 +211,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/timeline/hide', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/timeline/hide', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: false }).exec();
 
@@ -225,7 +225,7 @@ module.exports = function (apiRouter, config) {
     }
   });
 
-  projectRouter.post('/:project/timeline/show', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  projectRouter.post('/:project/timeline/show', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { showOnTimeline: true }).exec();
 

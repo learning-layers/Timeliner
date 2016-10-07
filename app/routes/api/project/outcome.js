@@ -21,7 +21,7 @@ module.exports = function (projectRouter, config) {
 
   const outcomeRouter = new Router({ prefix: '/:project/outcomes' });
 
-  outcomeRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  outcomeRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       const outcomes = yield Outcome.find({ project: this.params.project }).sort({ created: 1 }).populate(outcomePrepopulateOptions).exec();
 

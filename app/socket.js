@@ -99,7 +99,7 @@ module.exports = function (app) {
 
     if ( isAuthenticated(ctx) ) {
       let userId = getAuthenticatedUserId(ctx);
-      let promise = Participant.getProjectActiveParticipant(data.id, userId);
+      let promise = Participant.getProjectParticipant(data.id, userId);
 
       promise.then(function(participant) {
         if ( participant ) {
@@ -133,7 +133,7 @@ module.exports = function (app) {
 
     if ( isAuthenticated(ctx) ) {
       let userId = getAuthenticatedUserId(ctx);
-      let promise = Participant.getProjectActiveParticipant(data.id, userId);
+      let promise = Participant.getProjectParticipant(data.id, userId);
 
       promise.then(function(participant) {
         if ( participant ) {

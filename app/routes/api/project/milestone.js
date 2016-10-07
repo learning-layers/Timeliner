@@ -15,7 +15,7 @@ module.exports = function (projectRouter) {
 
   const milestonesRouter = new Router({ prefix: '/:project/milestones' });
 
-  milestonesRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  milestonesRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       const milestones = yield Milestone.find({ project: this.params.project }).sort({ created: 1 }).populate(milestonePopulateOptions).exec();
 

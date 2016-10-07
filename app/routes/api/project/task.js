@@ -31,7 +31,7 @@ module.exports = function (projectRouter) {
 
   const taskRouter = new Router({ prefix: '/:project/tasks' });
 
-  taskRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  taskRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       const tasks = yield Task.find({ project: this.params.project }).sort({ created: 1 }).populate(taskPopulateOptions).exec();
 

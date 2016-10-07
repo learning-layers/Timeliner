@@ -15,7 +15,7 @@ module.exports = function (projectRouter) {
 
   const annotationRouter = new Router({ prefix: '/:project/annotations' });
 
-  annotationRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  annotationRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       const annotations = yield Annotation.find({ project: this.params.project }).sort({ created: 1 }).populate(annotationPopulateOptions).exec();
 

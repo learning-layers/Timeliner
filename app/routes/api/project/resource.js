@@ -18,7 +18,7 @@ module.exports = function (projectRouter, config) {
 
   const resourceRouter = new Router({ prefix: '/:project/resources' });
 
-  resourceRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  resourceRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     try {
       const resources = yield Resource.find({ project: this.params.project }).sort({ created: 1 }).populate(resourcePopulateOptions).exec();
 

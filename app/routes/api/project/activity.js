@@ -14,7 +14,7 @@ module.exports = function (projectRouter) {
 
   const activityRouter = new Router({ prefix: '/:project/activities' });
 
-  activityRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+  activityRouter.get('/', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureProjectAccessRight, function *() {
     let lastCreated;
     let limit = 50;
     if ( this.request.query && this.request.query.lastCreated ) {
