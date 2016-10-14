@@ -19,14 +19,24 @@ module.exports = function (apiRouter) {
     }
   });
 
-  userRouter.get('/search', auth.ensureAuthenticated, auth.ensureUser, function *() {
+  userRouter.post('/search', auth.ensureAuthenticated, auth.ensureUser, bodyParser, function *() {
+    const query = {};
+
+    if ( this.request.body.search ) {
+      query.$text = {
+        $search: this.request.body.search,
+        $language: 'none'
+      };
+    }
+
+    if ( this.request.body.exclude ) {
+      query._id = {
+        $nin: this.request.body.exclude
+      };
+    }
+
     try {
-      const users = yield User.find({
-        $text: {
-          $search: this.request.query.text,
-          $language: 'none'
-        }
-      }).limit(10).exec();
+      const users = yield User.find(query).limit(10).exec();
 
       this.apiRespond(users);
     } catch (err) {
