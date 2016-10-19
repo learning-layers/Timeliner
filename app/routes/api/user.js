@@ -36,7 +36,7 @@ module.exports = function (apiRouter) {
     }
 
     try {
-      const users = yield User.find(query).limit(10).exec();
+      const users = yield User.find(query).limit(25).exec();
 
       this.apiRespond(users);
     } catch (err) {
