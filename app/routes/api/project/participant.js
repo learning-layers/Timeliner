@@ -5,9 +5,13 @@ const Project = require('mongoose').model('Project');
 const Participant = require('mongoose').model('Participant');
 const Auth = require(__dirname + '/../../../auth');
 const Middleware = require(__dirname + '/../../../lib/middleware');
-const ObjectId = require('mongoose').Types.ObjectId;
 
 module.exports = function (projectRouter) {
+
+  const participantPopulateOptions = [{
+    path: 'user',
+    model: 'User'
+  }];
 
   const participantRouter = new Router({ prefix: '/:project/participants' });
 
@@ -26,7 +30,9 @@ module.exports = function (projectRouter) {
           participants: participant._id
         }
       }).exec();
-      participant = yield Participant.populate(participant, 'user');
+      participant = yield Participant.populate(participant, participantPopulateOptions);
+
+      this.emitApiAction('invite', 'participant', participant, this.user);
 
       this.apiRespond(participant);
     } catch (err) {
@@ -44,7 +50,7 @@ module.exports = function (projectRouter) {
     let project;
 
     try {
-      project = Project.findOne({ _id: this.params.project }).exec();
+      project = yield Project.findOne({ _id: this.params.project }).exec();
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -57,16 +63,11 @@ module.exports = function (projectRouter) {
     }
 
     try {
-      const participant = yield Participant.findOneAndRemove({ project: this.params.project, user: this.user._id }).exec();
-      yield Project.findByIdAndUpdate(this.params.project, {
-        $pull: {
-          participants: ObjectId(participant._id)
-        }
-      }).exec();
+      const participant = yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }, { new: true }).populate(participantPopulateOptions).exec();
 
-      this.apiRespond({
-        _id: this.params.project
-      });
+      this.emitApiAction('leave', 'participant', participant, this.user);
+
+      this.apiRespond(participant);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -75,12 +76,11 @@ module.exports = function (projectRouter) {
 
   participantRouter.post('/accept', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensurePendingProjectParticipant, function *() {
     try {
-      yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }).exec();
+      const participant = yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'active' }, { new: true }).populate(participantPopulateOptions).exec();
 
-      // TODO See if responding with participant makes sense
-      this.apiRespond({
-        _id: this.params.project
-      });
+      this.emitApiAction('accept', 'participant', participant, this.user);
+
+      this.apiRespond(participant);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -89,12 +89,11 @@ module.exports = function (projectRouter) {
 
   participantRouter.post('/reject', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensurePendingProjectParticipant, function *() {
     try {
-      yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }).exec();
+      const participant = yield Participant.findOneAndUpdate({ project: this.params.project, user: this.user._id }, { status: 'placeholder' }, { new: true }).populate(participantPopulateOptions).exec();
 
-      // TODO See if responding with participant makes sense
-      this.apiRespond({
-        _id: this.params.project
-      });
+      this.emitApiAction('reject', 'participant', participant, this.user);
+
+      this.apiRespond(participant);
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -118,7 +117,7 @@ module.exports = function (projectRouter) {
     }
 
     try {
-      participant = yield Participant.findOneAndRemove({ project: this.params.project, user: this.params.user }).exec();
+      participant = yield Participant.findOneAndUpdate({ project: this.params.project, user: this.params.user }, { status: 'placeholder' }, { new: true }).populate(participantPopulateOptions).exec();
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
@@ -130,21 +129,9 @@ module.exports = function (projectRouter) {
       return;
     }
 
-    try {
-      yield Project.findByIdAndUpdate(this.params.project, {
-        $pull: {
-          participants: ObjectId(participant._id)
-        }
-      }).exec();
-    } catch (err) {
-      console.error(err);
-      this.throw(500, 'internal_server_error');
-      return;
-    }
+    this.emitApiAction('remove', 'participant', participant, this.user);
 
-    this.apiRespond({
-      _id: this.params.project
-    });
+    this.apiRespond(participant);
   });
 
   projectRouter.use('', participantRouter.routes(), participantRouter.allowedMethods());

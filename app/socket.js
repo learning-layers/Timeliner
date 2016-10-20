@@ -386,4 +386,29 @@ module.exports = function (app) {
     const message = extractModelFromData(data);
     app._io.in(message.project).emit('create:message', message);
   });
+
+  app.on('invite:participant', function(data) {
+    const participant = extractModelFromData(data);
+    app._io.in(participant.project).emit('invite:participant', participant);
+  });
+
+  app.on('accept:participant', function(data) {
+    const participant = extractModelFromData(data);
+    app._io.in(participant.project).emit('update:participant', participant);
+  });
+
+  app.on('reject:participant', function(data) {
+    const participant = extractModelFromData(data);
+    app._io.in(participant.project).emit('update:participant', participant);
+  });
+
+  app.on('leave:participant', function(data) {
+    const participant = extractModelFromData(data);
+    app._io.in(participant.project).emit('update:participant', participant);
+  });
+
+  app.on('remove:participant', function(data) {
+    const participant = extractModelFromData(data);
+    app._io.in(participant.project).emit('update:participant', participant);
+  });
 };

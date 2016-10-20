@@ -35,6 +35,9 @@ module.exports = function (app) {
         activityData.end = object.end;
       }
     }
+    if ( objectType === 'participant' && ( activityType === 'invite' || activityType === 'remove' ) ) {
+      activityData.user = ( object.user._id ) ? object.user._id : object.user;
+    }
 
     new Activity({
       activityType: activityType,
@@ -142,5 +145,25 @@ module.exports = function (app) {
 
   app.on('delete:outcome', function(data) {
     createActivityFromEvent('delete', 'outcome', data);
+  });
+
+  app.on('invite:participant', function(data) {
+    createActivityFromEvent('invite', 'participant', data);
+  });
+
+  app.on('leave:participant', function(data) {
+    createActivityFromEvent('leave', 'participant', data);
+  });
+
+  app.on('accept:participant', function(data) {
+    createActivityFromEvent('accept', 'participant', data);
+  });
+
+  app.on('reject:participant', function(data) {
+    createActivityFromEvent('reject', 'participant', data);
+  });
+
+  app.on('remove:participant', function(data) {
+    createActivityFromEvent('remove', 'participant', data);
   });
 };
