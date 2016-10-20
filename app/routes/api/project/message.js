@@ -37,7 +37,15 @@ module.exports = function (projectRouter) {
         messages = yield Message.find({ project: this.params.project }).sort({ created: -1 }).limit(limit).populate(messagePopulateOptions).exec();
       }
 
-      this.apiRespond(messages);
+      let remaining = 0;
+      if ( messages && messages.length >= limit ) {
+        remaining = yield Message.find({ project: this.params.project, created: { $lt: messages[messages.length-1].created } }).count();
+      }
+
+      this.apiRespond({
+        messages: messages,
+        remaining: remaining
+      });
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');

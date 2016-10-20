@@ -39,7 +39,15 @@ module.exports = function (projectRouter) {
         activities = yield Activity.find({ project: this.params.project }).sort({ created: -1 }).limit(limit).populate(activityPopulateOptions).exec();
       }
 
-      this.apiRespond(activities);
+      let remaining = 0;
+      if ( activities && activities.length >= limit ) {
+        remaining = yield Activity.find({ project: this.params.project, created: { $lt: activities[activities.length-1].created } }).count();
+      }
+
+      this.apiRespond({
+        activities: activities,
+        remaining: remaining
+      });
     } catch (err) {
       console.error(err);
       this.throw(500, 'internal_server_error');
