@@ -10,6 +10,9 @@ module.exports = function (projectRouter) {
   const activityPopulateOptions = [{
     path: 'actor',
     model: 'User'
+  }, {
+    path: 'data.user',
+    model: 'User'
   }];
 
   const activityRouter = new Router({ prefix: '/:project/activities' });
