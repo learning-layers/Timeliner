@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "main": "server.js",
   "scripts": {
-    "test": "NODE_ENV=test mocha --harmony"
+    "test": "NODE_ENV=test mocha"
   },
   "dependencies": {
     "bcrypt-nodejs": "0.0.3",
