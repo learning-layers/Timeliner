@@ -153,7 +153,61 @@ module.exports = function (projectRouter) {
     }
   });
 
-  taskRouter.post('/:task/participants/:participant', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
+  taskRouter.post('/:task/participants/:participant', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let task, participant;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      participant = yield Participant.findOne({ project: this.params.project, _id: this.params.participant }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.participants.indexOf(participant._id) !== -1) {
+      this.throw(409, 'alredy_has_this_participant');
+      return;
+    }
+
+    try {
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $push: {
+          'participants': participant._id
+        }
+      }, {
+        'new': true
+      }).exec();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task, this.user);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  taskRouter.delete('/:task/participants/:participant', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let task, participant;
 
     try {
@@ -183,15 +237,18 @@ module.exports = function (projectRouter) {
     }
 
     if (task.participants.indexOf(participant._id) === -1) {
-      task.participants.push(participant._id);
-    } else {
-      this.throw(409, 'already_is_a_participant');
+      this.throw(409, 'does_not_have_this_participant');
       return;
     }
 
     try {
-
-      task = yield task.save();
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $pull: {
+          'participants': participant._id
+        }
+      }, {
+        'new': true
+      }).exec();
 
       task = yield Task.populate(task, taskPopulateOptions);
 
@@ -204,7 +261,62 @@ module.exports = function (projectRouter) {
     }
   });
 
-  taskRouter.post('/:task/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, bodyParser, function *() {
+
+  taskRouter.post('/:task/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let task, resource;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      resource = yield Resource.findOne({ project: this.params.project, _id: this.params.resource }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.resources.indexOf(resource._id) !== -1) {
+      this.throw(409, 'already_has_this_resource');
+      return;
+    }
+
+    try {
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $push: {
+          'resources': resource._id
+        }
+      }, {
+        'new': true
+      }).exec();
+
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task, this.user);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  taskRouter.delete('/:task/resources/:resource', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let task, resource;
 
     try {
@@ -234,15 +346,18 @@ module.exports = function (projectRouter) {
     }
 
     if (task.resources.indexOf(resource._id) === -1) {
-      task.resources.push(resource._id);
-    } else {
-      this.throw(409, 'already_has_this_resource');
+      this.throw(409, 'does_not_have_this_resource');
       return;
     }
 
     try {
-
-      task = yield task.save();
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $pull: {
+          'resources': resource._id
+        }
+      }, {
+        'new': true
+      }).exec();
 
       task = yield Task.populate(task, taskPopulateOptions);
 
@@ -284,16 +399,73 @@ module.exports = function (projectRouter) {
       return;
     }
 
-    if (task.outcomes.indexOf(outcome._id) === -1) {
-      task.outcomes.push(outcome._id);
-    } else {
+    if (task.outcomes.indexOf(outcome._id) !== -1) {
       this.throw(409, 'already_has_this_outcome');
       return;
     }
 
     try {
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $push: {
+          'outcomes': outcome._id
+        }
+      }, {
+        'new': true
+      }).exec();
 
-      task = yield task.save();
+      task = yield Task.populate(task, taskPopulateOptions);
+
+      this.emitApiAction('update', 'task', task, this.user);
+
+      this.apiRespond(task);
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+    }
+  });
+
+  taskRouter.delete('/:task/outcomes/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
+    let task, outcome;
+
+    try {
+      task = yield Task.findOne({ _id: this.params.task }).exec();
+    } catch(err) {
+      console.error(err);
+      this.throw(500, 'internal_server_error');
+      return;
+    }
+
+    if ( !task ) {
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if ( !task.project.equals(this.params.project) ) {
+      this.throw(403, 'permission_error');
+      return;
+    }
+
+    try {
+      outcome = yield Outcome.findOne({ project: this.params.project, _id: this.params.outcome }).exec();
+    } catch (err){
+      console.error(err);
+      this.throw(404, 'not_found');
+      return;
+    }
+
+    if (task.outcomes.indexOf(outcome._id) === -1) {
+      this.throw(409, 'does_not_have_this_outcome');
+      return;
+    }
+
+    try {
+      task = yield Task.findByIdAndUpdate(task._id, {
+        $pull: {
+          'outcomes': outcome._id
+        }
+      }, {
+        'new': true
+      }).exec();
 
       task = yield Task.populate(task, taskPopulateOptions);
 
