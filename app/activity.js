@@ -53,7 +53,7 @@ module.exports = function (app) {
 
       activityData.task = {};
       activityData.task.title = taskObject.title;
-      activityData.task._id = taskObject._id;
+      activityData.task.id = taskObject._id;
     }
 
     new Activity({
