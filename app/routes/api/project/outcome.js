@@ -160,6 +160,8 @@ module.exports = function (projectRouter, config) {
     }
   });
 
+  // TODO This should run a query to remove any connections between for tasks
+  // It might also be needed to notify the front-end about the change (unless the logic is implemented there)
   outcomeRouter.delete('/:outcome', Auth.ensureAuthenticated, Auth.ensureUser, Middleware.ensureActiveProjectParticipant, function *() {
     let outcome;
 

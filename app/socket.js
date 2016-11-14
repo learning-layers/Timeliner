@@ -55,7 +55,11 @@ module.exports = function (app) {
     return decodedToken.sub;
   }
 
-  function extractModelFromData(data) {
+  function extractModelFromData(data, key) {
+    if ( key ) {
+      return data.data[key];
+    }
+
     return data.data;
   }
   io.attach(app);
@@ -410,5 +414,41 @@ module.exports = function (app) {
   app.on('remove:participant', function(data) {
     const participant = extractModelFromData(data);
     app._io.in(participant.project).emit('update:participant', participant);
+  });
+
+  app.on('attach:participant', function(data) {
+    const participant = extractModelFromData(data, 'participant');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(participant.project).emit('update:task', task);
+  });
+
+  app.on('detach:participant', function(data) {
+    const participant = extractModelFromData(data, 'participant');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(participant.project).emit('update:task', task);
+  });
+
+  app.on('attach:resource', function(data) {
+    const resource = extractModelFromData(data, 'resource');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(resource.project).emit('update:task', task);
+  });
+
+  app.on('detach:resource', function(data) {
+    const resource = extractModelFromData(data, 'resource');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(resource.project).emit('update:task', task);
+  });
+
+  app.on('attach:outcome', function(data) {
+    const outcome = extractModelFromData(data, 'outcome');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(outcome.project).emit('update:task', task);
+  });
+
+  app.on('detach:outcome', function(data) {
+    const outcome = extractModelFromData(data, 'outcome');
+    const task = extractModelFromData(data, 'task');
+    app._io.in(outcome.project).emit('update:task', task);
   });
 };

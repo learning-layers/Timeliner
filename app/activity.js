@@ -3,12 +3,13 @@
 const Activity = require('mongoose').model('Activity');
 
 module.exports = function (app) {
-  const activityPopulateOptions = [{
-    path: 'actor',
-    model: 'User'
-  }];
+  const activityPopulateOptions = Activity.getPopulateOptions();
 
-  function extractModelFromData(data) {
+  function extractModelFromData(data, type) {
+    if ( type ) {
+      return data.data[type];
+    }
+
     return data.data;
   }
 
@@ -16,8 +17,16 @@ module.exports = function (app) {
     return data.actor;
   }
 
+  function getModelTypeToExtract(actionType, objectType) {
+    if ( actionType === 'attach' || actionType === 'detach' ) {
+      return objectType;
+    }
+
+    return null;
+  }
+
   function createActivityFromEvent(activityType, objectType, data) {
-    const object = extractModelFromData(data);
+    const object = extractModelFromData(data, getModelTypeToExtract(activityType, objectType));
     const actor = extractActorFromData(data);
     let activityData = {};
 
@@ -35,8 +44,16 @@ module.exports = function (app) {
         activityData.end = object.end;
       }
     }
-    if ( objectType === 'participant' && ( activityType === 'invite' || activityType === 'remove' ) ) {
+    if ( objectType === 'participant' && ( activityType === 'invite' || activityType === 'remove' || activityType === 'attach' || activityType === 'detach' ) ) {
       activityData.user = ( object.user._id ) ? object.user._id : object.user;
+    }
+
+    if ( activityType === 'attach' || activityType === 'detach' ) {
+      const taskObject = extractModelFromData(data, 'task');
+
+      activityData.task = {};
+      activityData.task.title = taskObject.title;
+      activityData.task._id = taskObject._id;
     }
 
     new Activity({
@@ -165,5 +182,29 @@ module.exports = function (app) {
 
   app.on('remove:participant', function(data) {
     createActivityFromEvent('remove', 'participant', data);
+  });
+
+  app.on('attach:participant', function(data) {
+    createActivityFromEvent('attach', 'participant', data);
+  });
+
+  app.on('detach:participant', function(data) {
+    createActivityFromEvent('detach', 'participant', data);
+  });
+
+  app.on('attach:resource', function(data) {
+    createActivityFromEvent('attach', 'resource', data);
+  });
+
+  app.on('detach:resource', function(data) {
+    createActivityFromEvent('detach', 'resource', data);
+  });
+
+  app.on('attach:outcome', function(data) {
+    createActivityFromEvent('attach', 'outcome', data);
+  });
+
+  app.on('detach:outcome', function(data) {
+    createActivityFromEvent('detach', 'outcome', data);
   });
 };

@@ -30,6 +30,17 @@ activitySchema.pre('save', function(done) {
   done();
 });
 
+activitySchema.statics.getPopulateOptions = function() {
+  return [{
+    path: 'actor',
+    model: 'User'
+  },
+  {
+    path: 'data.user',
+    model: 'User'
+  }];
+};
+
 const Activity = mongoose.model('Activity', activitySchema);
 
 module.exports = Activity;

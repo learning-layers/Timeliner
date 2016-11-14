@@ -198,7 +198,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('attach', 'participant', { task: task, participant: participant }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -252,7 +252,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('detach', 'participant', { task: task, participant: participant }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -307,7 +307,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('attach', 'resource', { task: task, resource: resource }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -361,7 +361,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('detach', 'resource', { task: task, resource: resource }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -415,7 +415,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('attach', 'outcome', { task: task, outcome: outcome }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
@@ -469,7 +469,7 @@ module.exports = function (projectRouter) {
 
       task = yield Task.populate(task, taskPopulateOptions);
 
-      this.emitApiAction('update', 'task', task, this.user);
+      this.emitApiAction('detach', 'outcome', { task: task, outcome: outcome }, this.user);
 
       this.apiRespond(task);
     } catch(err) {
