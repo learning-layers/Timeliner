@@ -44,6 +44,10 @@ let userSchema = new Schema({
   {
     toJSON : {
       transform: function (doc, ret) {
+        // This is a temporary solution to expired FB images
+        if ( ret.image && ret.social && ret.social[0].provider === 'facebook' ) {
+          ret.image = 'https://graph.facebook.com/v2.8/' + ret.social[0].provider.id + '/picture?redirect=true';
+        }
         delete ret.__v;
         delete ret.password;
         delete ret.isActivated;
