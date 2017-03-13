@@ -120,11 +120,18 @@ userSchema.methods.updateSocialProviderAccessToken = function *(provider, id, to
 };
 
 userSchema.methods.getObjectWithPrivateData = function() {
+  let image = this.image;
+
+  // This is a temporary solution to expired FB images
+  if ( image && this.social && this.social[0].provider === 'facebook' ) {
+    image = 'https://graph.facebook.com/v2.8/' + this.social[0].id + '/picture?redirect=true';
+  }
+
   return {
     _id: this._id,
     email: this.email,
     name: this.name,
-    image: this.image,
+    image: image,
     isAdmin: this.isAdmin
   };
 };
