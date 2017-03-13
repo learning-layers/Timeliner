@@ -93,10 +93,18 @@ const bodyParserUpload = require('koa-body')({
   }
 });
 
+const noCache = function *(next) {
+  this.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  this.set('Pragma', 'no-cache');
+  this.set('Expires', 0);
+  return yield next;
+};
+
 module.exports = {
   ensureProjectOwner: ensureProjectOwner,
   ensureProjectAccessRight: ensureProjectAccessRight,
   ensureActiveProjectParticipant: ensureActiveProjectParticipant,
   ensurePendingProjectParticipant: ensurePendingProjectParticipant,
-  bodyParserUpload: bodyParserUpload
+  bodyParserUpload: bodyParserUpload,
+  noCache: noCache
 };

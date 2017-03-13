@@ -4,7 +4,7 @@ const Router = require('koa-router');
 const cors = require('kcors');
 const mount = require('koa-mount');
 const _ = require('lodash');
-
+const Middleware = require(__dirname + '/../../lib/middleware');
 
 module.exports = function (app, config) {
 
@@ -13,6 +13,8 @@ module.exports = function (app, config) {
   app.use(mount('/api', cors({
     credentials: true
   })));
+
+  apiRouter.get('*', Middleware.noCache);
 
   apiRouter.use(function *(next) {
     this.apiRespond = function () {
