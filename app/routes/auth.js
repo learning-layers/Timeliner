@@ -11,7 +11,7 @@ const linkedinMe = social.linkedin.me;
 const constructUiSuccessRedirectUrl = social.constructUiSuccessRedirectUrl;
 const constructUiErrorRedirectUrl = social.constructUiErrorRedirectUrl;
 const User = require('mongoose').model('User');
-
+const Middleware = require(__dirname + '/../lib/middleware');
 
 module.exports = function (app, config) {
   const grant = new Grant(config.app.grant);
@@ -26,6 +26,8 @@ module.exports = function (app, config) {
   app.use(mount('/auth', grant));
 
   const authRouter = new Router({ prefix: '/auth' });
+
+  authRouter.get('*', Middleware.noCache);
 
   authRouter.get('/facebook/callback', function *() {
     let grantData, userData;
