@@ -59,7 +59,7 @@ module.exports = function (app, config) {
     try {
       let user = yield User.findBySocialId(grantData.provider, userData.id);
 
-      yield user.updateSocialProviderAccessToken(grantData.provider, userData.id, grantData.response.access_token, grantData.response.raw.expires);
+      yield user.updateSocialProviderAccessToken(grantData.provider, userData.id, grantData.response.access_token, grantData.response.raw.expires_in);
 
       this.response.redirect(constructUiSuccessRedirectUrl(config.app.uiUrl, grantData.state));
       return;
@@ -84,7 +84,7 @@ module.exports = function (app, config) {
         id: userData.id,
         token: {
           value: grantData.response.access_token,
-          expires: new Date( (new Date()).getTime() + (1000 * parseInt(grantData.response.raw.expires) ) ),
+          expires: new Date( (new Date()).getTime() + (1000 * parseInt(grantData.response.raw.expires_in) ) ),
           created: new Date()
         }
       }]
